@@ -1497,7 +1497,7 @@ async function read(){
   const src = links.length ? links.map(l=>`${l.platform.name} (${l.url})${l.words.length?` — palabras del enlace: "${l.words.join(" ")}"`:""}`).join("; ") : "";
   const txt = rest || (hint ? `(Solo hay un enlace. Deduce la receta a partir de estas palabras del enlace: "${hint}")` : "");
   const go = $("#go"); go.disabled = true;
-  $("#status").innerHTML = `<span class="dot"></span> ${canWatch ? "Viendo el video… puede tomar hasta un minuto" : "Leyendo la receta… esto toma unos segundos"}`;
+  $("#status").innerHTML = `<span class="dot"></span> ${canWatch ? "Viendo el video… los videos largos pueden tardar 1 a 2 minutos" : "Leyendo la receta… esto toma unos segundos"}`;
   try{
     const opts = {};
     if(images.length) opts.images = images;

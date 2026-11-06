@@ -29,11 +29,11 @@ async function uploadToGemini(buf, key){
     "content-type":"application/json" }, body: JSON.stringify({ file:{ display_name:"recetok-video" } }), signal: AbortSignal.timeout(10000) });
   const url = start.headers.get("x-goog-upload-url");
   if(!start.ok || !url) throw { code:"video_unavailable" };
-  const up = await fetch(url, { method:"POST", headers:{ "Content-Length":String(buf.length), "X-Goog-Upload-Offset":"0", "X-Goog-Upload-Command":"upload, finalize" }, body: buf, signal: AbortSignal.timeout(25000) });
+  const up = await fetch(url, { method:"POST", headers:{ "Content-Length":String(buf.length), "X-Goog-Upload-Offset":"0", "X-Goog-Upload-Command":"upload, finalize" }, body: buf, signal: AbortSignal.timeout(60000) });
   let f = (await up.json().catch(() => ({}))).file;
   if(!up.ok || !f?.uri) throw { code:"video_unavailable" };
-  for(let i = 0; i < 10 && f.state === "PROCESSING"; i++){
-    await new Promise(r => setTimeout(r, 1500));
+  for(let i = 0; i < 30 && f.state === "PROCESSING"; i++){
+    await new Promise(r => setTimeout(r, 2000));
     const g = await fetch(base + "/v1beta/" + f.name, { headers:{ "x-goog-api-key":key } });
     f = await g.json().catch(() => f);
   }
@@ -75,10 +75,10 @@ async function run(req, res, deadline){
           const play = info?.data?.play;
           if(!play) throw { code:"video_unavailable" };
           videoTitle = String(info.data.title || "");
-          const vr = await fetch(play.startsWith("http") ? play : "https://www.tikwm.com" + play, { signal: AbortSignal.timeout(20000) });
+          const vr = await fetch(play.startsWith("http") ? play : "https://www.tikwm.com" + play, { signal: AbortSignal.timeout(45000) });
           const buf = Buffer.from(await vr.arrayBuffer());
           if(!vr.ok || !buf.length) throw { code:"video_unavailable" };
-          if(buf.length > 60 * 1024 * 1024) throw { code:"video_too_large" };
+          if(buf.length > 100 * 1024 * 1024) throw { code:"video_too_large" };
           if(buf.length <= 12 * 1024 * 1024){
             videoPart = { inlineData:{ mimeType:"video/mp4", data: buf.toString("base64") } };
           }else{
@@ -129,7 +129,8 @@ async function run(req, res, deadline){
       if(!text.trim()) return res.status(502).json({ code:"empty_completion", message:"La IA no respondió." });
       return res.status(200).json({ text, truncated: cand?.finishReason === "MAX_TOKENS" });
     }catch(e){
-      return res.status(502).json({ code:"upstream_error", message:"No se pudo contactar a la IA." });
+      if(e?.name === "TimeoutError" || e?.name === "AbortError") return res.status(504).json({ code:"timeout", message:"La IA tardó demasiado." });
+      return res.status(502).json({ code:"upstream_error", message:"No se pudo contactar a la IA (" + (e?.name || "error") + ": " + String(e?.message || "").slice(0,80) + ")." });
     }
   }
 
@@ -165,7 +166,7 @@ async function run(req, res, deadline){
 }
 
 module.exports = async function handler(req, res){
-  const deadline = Date.now() + 52000;
+  const deadline = Date.now() + 165000;
   try{ return await run(req, res, deadline); }
   catch(e){
     if(res.headersSent) return;
