@@ -105,23 +105,28 @@ async function run(req, res, deadline){
       (body.json ? " Tu respuesta será leída por un programa: responde SOLO con el JSON pedido, sin texto antes ni después y sin bloques de código." : "");
     try{
       let r, d;
-      for(const model of models){
-        r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent", {
-          method:"POST",
-          headers:{ "content-type":"application/json", "x-goog-api-key":process.env.GEMINI_API_KEY },
-          signal: AbortSignal.timeout(Math.max(8000, deadline - Date.now())),
-          body: JSON.stringify({ systemInstruction:{ parts:[{ text:systemG }] }, contents,
-            generationConfig:{ maxOutputTokens: 16384, ...(body.json ? { responseMimeType:"application/json" } : {}) } }),
-        });
-        d = await r.json().catch(() => ({}));
-        // si el modelo ya no existe o no está disponible, se prueba el siguiente
-        if(!r.ok && (r.status === 404 || /no longer available|not found|not supported/i.test(d?.error?.message || "")) && model !== models[models.length-1]) continue;
-        break;
+      const busy = () => !r.ok && (r.status === 503 || r.status === 500 || r.status === 429 || r.status === 404 ||
+        /high demand|overloaded|unavailable|no longer available|not found|not supported|quota/i.test(d?.error?.message || ""));
+      outer: for(let round = 0; round < 3; round++){
+        for(const model of models){
+          if(deadline - Date.now() < 15000) break outer;
+          r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent", {
+            method:"POST",
+            headers:{ "content-type":"application/json", "x-goog-api-key":process.env.GEMINI_API_KEY },
+            signal: AbortSignal.timeout(Math.max(8000, deadline - Date.now())),
+            body: JSON.stringify({ systemInstruction:{ parts:[{ text:systemG }] }, contents,
+              generationConfig:{ maxOutputTokens: 16384, ...(body.json ? { responseMimeType:"application/json" } : {}) } }),
+          });
+          d = await r.json().catch(() => ({}));
+          if(r.ok || !busy()) break outer;   // éxito o error que no se arregla cambiando de modelo
+        }
+        await new Promise(res2 => setTimeout(res2, 4000 * (round + 1)));  // todos ocupados: esperar y reintentar
       }
       if(!r.ok){
         const bad = r.status === 400 && /API key/i.test(d?.error?.message || "") || r.status === 403;
         if(bad) return res.status(503).json({ code:"not_configured", message:"La clave de Gemini no es válida." });
         if(r.status === 429) return res.status(429).json({ code:"rate_limited", message:"Se alcanzó el límite gratis de Gemini. Espera un momento." });
+        if(r.status === 503 || /high demand|overloaded/i.test(d?.error?.message || "")) return res.status(503).json({ code:"busy", message:"Gemini está muy ocupado." });
         return res.status(r.status >= 500 ? 502 : r.status).json({ code: r.status === 400 ? "invalid_request" : "upstream_error", message: d?.error?.message || "Error del servicio de IA." });
       }
       const cand = d.candidates?.[0];
