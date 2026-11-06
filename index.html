@@ -1451,8 +1451,8 @@ const SCHEMA = `{"nombre":string,"descripcion":string (1 frase),"porciones":numb
 "alergenos":[string],"precio_estimado_soles":{"total":number,"por_porcion":number},
 "puntuacion_saludable":number 1-10,"nota_salud":string (1 frase)`;
 
-const PROMPT = (txt, hasImg, src) => `Eres un nutricionista y cocinero amable que lee recetas virales de redes sociales y webs (TikTok, YouTube, Instagram, Facebook, blogs) para un público hispanohablante (Perú/Latinoamérica). Usa ingredientes fáciles de conseguir allí.
-${hasImg ? "Te adjunto captura(s) de pantalla del video; identifica el plato y lee cualquier texto visible.\n" : ""}${src ? "Fuente: "+src+". No puedes abrir el enlace; usa solo lo que se indica aquí.\n" : ""}Texto del usuario (descripción, transcripción, subtítulos o lo que recuerda del video):
+const PROMPT = (txt, hasImg, src, hasVideo) => `Eres un nutricionista y cocinero amable que lee recetas virales de redes sociales y webs (TikTok, YouTube, Instagram, Facebook, blogs) para un público hispanohablante (Perú/Latinoamérica). Usa ingredientes fáciles de conseguir allí.
+${hasImg ? "Te adjunto captura(s) de pantalla del video; identifica el plato y lee cualquier texto visible.\n" : ""}${hasVideo ? "Te adjunto el VIDEO: míralo y escúchalo con atención; lee los textos en pantalla, las cantidades que se dicen y los pasos que se muestran.\n" : ""}${src ? "Fuente: "+src+(hasVideo ? ".\n" : ". No puedes abrir el enlace; usa solo lo que se indica aquí.\n") : ""}Texto del usuario (descripción, transcripción, subtítulos o lo que recuerda del video):
 """${txt || "(sin texto, usa solo las imágenes)"}"""
 Objetivos del usuario: ${prefText()}. Orienta los cambios saludables a estos objetivos.
 
@@ -1472,6 +1472,8 @@ const ERR = {
   image_rejected:"No se pudo leer esa imagen. Prueba con otra foto (JPG o PNG).",
   refused:"No se pudo procesar ese contenido. Prueba describiendo solo la receta.",
   session_expired:"Tu sesión expiró.",
+  video_unavailable:"No pude abrir ese video (puede ser privado o estar bloqueado). Copia la descripción o sube una captura del plato.",
+  video_too_large:"Ese video es muy pesado para analizarlo. Copia la descripción o sube una captura del plato.",
   not_configured:"La IA aún no está configurada en el servidor (falta la clave).",
   offline:"Sin conexión: la IA necesita internet. Tu recetario y el modo cocina sí funcionan."
 };
@@ -1485,7 +1487,8 @@ async function read(){
   const { links, rest } = parseLinks(raw);
   const link = links[0];
   const hint = links.flatMap(l=>l.words).join(" ");
-  if(link && rest.length < 8 && !images.length && (link.platform.video || hint.split(" ").length < 2)){
+  const canWatch = !!window.RECETOK_APP && link && ["youtube","tiktok"].includes(link.platform.id) && !images.length;
+  if(link && !canWatch && rest.length < 8 && !images.length && (link.platform.video || hint.split(" ").length < 2)){
     $("#status").innerHTML = `<div class="howto">${IC.link}<div><b>Reconocí un link de ${esc(link.platform.name)}, pero la IA no puede abrir videos.</b><br>${esc(link.platform.how)}</div></div>`;
     return;
   }
@@ -1493,16 +1496,17 @@ async function read(){
   const src = links.length ? links.map(l=>`${l.platform.name} (${l.url})${l.words.length?` — palabras del enlace: "${l.words.join(" ")}"`:""}`).join("; ") : "";
   const txt = rest || (hint ? `(Solo hay un enlace. Deduce la receta a partir de estas palabras del enlace: "${hint}")` : "");
   const go = $("#go"); go.disabled = true;
-  $("#status").innerHTML = `<span class="dot"></span> Leyendo la receta… esto toma unos segundos`;
+  $("#status").innerHTML = `<span class="dot"></span> ${canWatch ? "Viendo el video… puede tomar hasta un minuto" : "Leyendo la receta… esto toma unos segundos"}`;
   try{
     const opts = {};
     if(images.length) opts.images = images;
-    const r = await sample.json(PROMPT(txt, !!images.length, src), opts);
+    if(canWatch) opts.videoUrl = link.url;
+    const r = await sample.json(PROMPT(txt, !!images.length, src, canWatch), opts);
     if(!r || r.error){ $("#status").innerHTML = `<span class="err">${esc(r?.error || "No encontré una receta ahí.")}</span>`; return; }
     r.id = uid();
     if(images.length) r._thumb = await cropFood(images, r.recorte_comida);
     delete r.recorte_comida;
-    if(link) r._src = { name: link.platform.name, url: link.url, guessed: !rest && !images.length };
+    if(link) r._src = { name: link.platform.name, url: link.url, guessed: !rest && !images.length && !canWatch };
     load(r); saveHist(r);
     $("#status").textContent = r._src?.guessed ? "Listo ✓ · receta deducida solo del título del enlace; revisa las cantidades." : "Listo ✓";
     scrollToResult();

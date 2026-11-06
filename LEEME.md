@@ -19,7 +19,7 @@ Ya existe el proyecto **recetok** en tu equipo de Vercel ("Mariano's team"), con
 
 1. Crea una clave en https://console.anthropic.com (sección *API Keys*) y carga saldo.
 2. En Vercel: proyecto **recetok** → *Settings → Environment Variables* → agrega
-   - `ANTHROPIC_API_KEY` = tu clave (marca *Production* y *Preview*).
+   - `GEMINI_API_KEY` = tu clave gratis de https://aistudio.google.com/apikey (marca *Production* y *Preview*).
 3. `APP_CODE` ya está creada. Es el código que la app te pide una vez por dispositivo. Puedes cambiarlo ahí mismo cuando quieras.
 4. Vuelve a publicar (*Deployments → ⋯ → Redeploy*) para que tome la clave.
 

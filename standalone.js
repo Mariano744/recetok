@@ -57,7 +57,7 @@
     try{
       r = await fetch("/api/claude", { method:"POST", signal:opts.signal,
         headers:{ "content-type":"application/json", "x-app-code":code },
-        body: JSON.stringify({ messages, images:imgs, tier:opts.modelTier || "default", json }) });
+        body: JSON.stringify({ messages, images:imgs, tier:opts.modelTier || "default", json, videoUrl:opts.videoUrl }) });
     }catch(e){
       if(opts.signal?.aborted) throw { code:"cancelled" };
       throw { code: navigator.onLine === false ? "offline" : "upstream_error", message:"Sin conexión." };
