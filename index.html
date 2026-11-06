@@ -658,6 +658,9 @@ ol.steps li .mins{display:inline-block;margin-left:8px;font:500 .72rem var(--f-n
 .g-btn[disabled]{opacity:.4;cursor:default}
 .g-x{width:52px;padding:0;font-size:1.2rem}
 .g-prac{font-size:.85rem}
+.g-ing{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.g-ing:empty{display:none}.g-ing span{background:#fff;border:2px solid var(--g-ink);border-radius:999px;padding:3px 10px;font-size:.85rem;color:var(--g-ink)}.g-ing b{color:var(--g-red)}
+.game.big .g-step p{font-size:clamp(1.5rem,4.4vw,2.2rem)}.game.big .g-ing span{font-size:1.05rem}
+.g-plus{margin-top:6px;min-height:44px;font-size:.9rem}
 .g-prac[aria-pressed="true"]{background:var(--g-yellow)}
 .g-progress{display:flex;gap:6px;justify-content:center}
 .g-progress i{width:26px;height:8px;border-radius:4px;background:#f2cf97;border:2px solid var(--g-ink)}
@@ -834,6 +837,8 @@ ol.steps li .mins{display:inline-block;margin-left:8px;font:500 .72rem var(--f-n
   <div class="g-hud">
     <div class="ticket"><span class="t-lab">ORDEN</span><b id="gName">Receta</b></div>
     <div class="g-score"><span class="g-stars" id="gStars">☆☆☆</span><b id="gPts">0</b><small>pts</small></div>
+    <button class="g-btn g-prac" id="gVoice" aria-pressed="false" title="Leer cada paso en voz alta">🔊</button>
+    <button class="g-btn g-prac" id="gSize" aria-pressed="false" title="Letra más grande">A+</button>
     <button class="g-btn g-prac" id="gPrac" aria-pressed="false" title="Cada minuto dura 1 segundo">Práctica</button>
     <button class="g-btn g-x" id="gClose" aria-label="Salir del modo cocina">✕</button>
   </div>
@@ -843,7 +848,7 @@ ol.steps li .mins{display:inline-block;margin-left:8px;font:500 .72rem var(--f-n
     <div class="g-pop" id="gPop" aria-live="polite"></div>
   </div>
   <div class="g-panel">
-    <div class="g-step"><span class="g-count" id="gCount">Paso 1</span><p id="gText"></p></div>
+    <div class="g-step"><span class="g-count" id="gCount">Paso 1</span><p id="gText"></p><div class="g-ing" id="gIng"></div></div>
     <div class="g-action" id="gAction"></div>
     <div class="burners" id="burners"></div>
     <div class="g-nav">
@@ -2116,6 +2121,14 @@ function stepFoods(r, p){
   if(!out.length) (r.ingredientes||[]).slice(0,2).forEach(i=>out.push(foodOf(i.item.split(/[,(]/)[0].trim())));
   return out.slice(0,4);
 }
+function stepIngs(r, p){
+  const t = norm(stepText(p)), out = [];
+  for(const i of (r.ingredientes||[])){
+    const words = norm(i.item).split(/[ ,]+/).filter(w=>w.length>=3 && !/^(con|del|las|los|una|uno|para|por)$/.test(w));
+    if(words.some(w=>t.includes(w.slice(0, Math.max(4, w.length-2))))) out.push(i);
+  }
+  return out.slice(0,8);
+}
 const TAPWORD = {cortar:["¡CHOP!","¡TAC!","¡ZAS!"], mezclar:["¡SWISH!","¡GIRA!","¡MIX!"], licuar:["¡BRRR!","¡VRUM!"], servir:["¡TA-DÁ!","¡VOILÀ!"], freir:["¡TSSS!","¡CHSS!"], hervir:["¡BLUB!","¡PLOP!"], hornear:["¡DING!"], reposar:["¡ZZZ!"]};
 const ACTLABEL = {cortar:"¡PICA!", mezclar:"¡MEZCLA!", licuar:"¡LICÚA!", servir:"¡SIRVE!", freir:"¡SALTEA!", hervir:"¡REMUEVE!", hornear:"¡AL HORNO!", reposar:"¡LISTO!"};
 const ACTNAME = {cortar:"Tabla de picar", mezclar:"Bol de mezcla", licuar:"Licuadora", servir:"Emplatado", freir:"Sartén", hervir:"Olla", hornear:"Horno", reposar:"Reposo"};
@@ -2138,6 +2151,7 @@ const Game = {
     $("#game").hidden = true; document.body.classList.remove("lock");
     cancelAnimationFrame(this.raf); clearInterval(this.tick);
     try{ this.lock?.release(); }catch{} this.lock = null;
+    try{ speechSynthesis.cancel(); }catch{}
   },
   get step(){ return this.r.pasos[this.i]; },
   go(i){
@@ -2147,11 +2161,20 @@ const Game = {
     this.taps = 0; this.need = this.act==="servir" ? 3 : 6;
     $("#gCount").textContent = `Paso ${this.i+1} de ${this.r.pasos.length} · ${ACTNAME[this.act]}`;
     $("#gText").textContent = stepText(p);
+    $("#gIng").innerHTML = stepIngs(this.r, p).map(i=>`<span>${esc(i.item.split(/[,(]/)[0].trim())} <b>${esc(i.exacta||i.cantidad||"")}</b></span>`).join("");
+    this.speak();
     $("#gPrev").disabled = this.i===0;
     $("#gNext").textContent = this.i===this.r.pasos.length-1 ? "Terminar ✓" : "Siguiente ▶";
     $("#gDots").innerHTML = this.r.pasos.map((_,k)=>`<i class="${k===this.i?'now':''} ${this.res[k]?'ok':''}"></i>`).join("");
     this.drawAction();
   },
+  voice:false,
+  speak(){
+    try{ speechSynthesis.cancel(); if(!this.voice) return;
+      const u = new SpeechSynthesisUtterance(`Paso ${this.i+1}. ${stepText(this.step)}`); u.lang = "es-PE"; u.rate = .95; speechSynthesis.speak(u);
+    }catch{}
+  },
+  extend(t){ t.total += 60; t.doneAt = 0; this.tickTimers(); this.drawBurners(); this.drawAction(); },
   timerFor(i){ return this.timers.find(t=>t.step===i && !t.collected); },
   drawAction(){
     const a = $("#gAction"), res = this.res[this.i];
@@ -2163,8 +2186,10 @@ const Game = {
         $("#gDo").onclick = () => this.startTimer();
       } else {
         a.innerHTML = `<div class="gauge"><div class="gbar"><i id="gFill"></i><span class="zone"></span></div><div class="gnum" id="gNum"></div></div>
-          <button class="g-big" id="gDo">¡RETIRAR!</button>`;
+          <button class="g-big" id="gDo">¡RETIRAR!</button>
+          <button class="g-btn g-plus" id="gPlus">+1 min más</button>`;
         $("#gDo").onclick = () => this.collect(t);
+        $("#gPlus").onclick = () => this.extend(t);
         this.updateGauge();
       }
     } else {
@@ -2493,6 +2518,8 @@ function star5(c,x,y,r,col){ c.beginPath(); for(let k=0;k<10;k++){ const rad = k
 
 /* controles del juego */
 $("#gClose").onclick = () => Game.close();
+$("#gVoice").onclick = e => { Game.voice = !Game.voice; e.currentTarget.setAttribute("aria-pressed", Game.voice); if(Game.voice) Game.speak(); else try{ speechSynthesis.cancel(); }catch{} };
+$("#gSize").onclick = e => { const on = $("#game").classList.toggle("big"); e.currentTarget.setAttribute("aria-pressed", on); setTimeout(()=>Game.resize(),50); };
 $("#gPrev").onclick = () => Game.go(Game.i-1);
 $("#gNext").onclick = () => Game.next();
 document.addEventListener("keydown", e => {
