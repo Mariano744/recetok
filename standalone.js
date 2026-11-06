@@ -62,7 +62,7 @@
       if(opts.signal?.aborted) throw { code:"cancelled" };
       throw { code: navigator.onLine === false ? "offline" : "upstream_error", message:"Sin conexión." };
     }
-    const d = await r.json().catch(() => ({}));
+    const d = await r.json().catch(() => ({ code: r.status === 504 ? "timeout" : "upstream_error", message: "HTTP " + r.status }));
     if(r.status === 401){ setCode(""); if(!retried) return call(input, opts, json, true); throw { code:"not_granted", message:d.message }; }
     if(!r.ok) throw { code: d.code || "upstream_error", message: d.message || "" };
     try{ opts.onText?.({ text:d.text, delta:d.text }); }catch{}

@@ -26,13 +26,13 @@ async function uploadToGemini(buf, key){
   const start = await fetch(base + "/upload/v1beta/files", { method:"POST", headers:{
     "x-goog-api-key":key, "X-Goog-Upload-Protocol":"resumable", "X-Goog-Upload-Command":"start",
     "X-Goog-Upload-Header-Content-Length":String(buf.length), "X-Goog-Upload-Header-Content-Type":"video/mp4",
-    "content-type":"application/json" }, body: JSON.stringify({ file:{ display_name:"recetok-video" } }) });
+    "content-type":"application/json" }, body: JSON.stringify({ file:{ display_name:"recetok-video" } }), signal: AbortSignal.timeout(10000) });
   const url = start.headers.get("x-goog-upload-url");
   if(!start.ok || !url) throw { code:"video_unavailable" };
-  const up = await fetch(url, { method:"POST", headers:{ "Content-Length":String(buf.length), "X-Goog-Upload-Offset":"0", "X-Goog-Upload-Command":"upload, finalize" }, body: buf });
+  const up = await fetch(url, { method:"POST", headers:{ "Content-Length":String(buf.length), "X-Goog-Upload-Offset":"0", "X-Goog-Upload-Command":"upload, finalize" }, body: buf, signal: AbortSignal.timeout(25000) });
   let f = (await up.json().catch(() => ({}))).file;
   if(!up.ok || !f?.uri) throw { code:"video_unavailable" };
-  for(let i = 0; i < 20 && f.state === "PROCESSING"; i++){
+  for(let i = 0; i < 10 && f.state === "PROCESSING"; i++){
     await new Promise(r => setTimeout(r, 1500));
     const g = await fetch(base + "/v1beta/" + f.name, { headers:{ "x-goog-api-key":key } });
     f = await g.json().catch(() => f);
@@ -41,7 +41,7 @@ async function uploadToGemini(buf, key){
   return { fileData:{ mimeType:"video/mp4", fileUri:f.uri } };
 }
 
-module.exports = async function handler(req, res){
+async function run(req, res, deadline){
   res.setHeader("Cache-Control", "no-store");
   if(req.method !== "POST") return res.status(405).json({ code:"invalid_request", message:"Usa POST." });
   if(!process.env.GEMINI_API_KEY && !process.env.ANTHROPIC_API_KEY) return res.status(503).json({ code:"not_configured", message:"Falta GEMINI_API_KEY en Vercel." });
@@ -71,11 +71,11 @@ module.exports = async function handler(req, res){
         if(/^(youtube\.com|youtu\.be)$/.test(host)){
           videoPart = { fileData:{ fileUri: body.videoUrl } };
         }else if(/(^|\.)tiktok\.com$/.test(host)){
-          const info = await (await fetch("https://www.tikwm.com/api/?url=" + encodeURIComponent(body.videoUrl))).json();
+          const info = await (await fetch("https://www.tikwm.com/api/?url=" + encodeURIComponent(body.videoUrl), { signal: AbortSignal.timeout(10000) })).json();
           const play = info?.data?.play;
           if(!play) throw { code:"video_unavailable" };
           videoTitle = String(info.data.title || "");
-          const vr = await fetch(play.startsWith("http") ? play : "https://www.tikwm.com" + play);
+          const vr = await fetch(play.startsWith("http") ? play : "https://www.tikwm.com" + play, { signal: AbortSignal.timeout(20000) });
           const buf = Buffer.from(await vr.arrayBuffer());
           if(!vr.ok || !buf.length) throw { code:"video_unavailable" };
           if(buf.length > 60 * 1024 * 1024) throw { code:"video_too_large" };
@@ -86,6 +86,7 @@ module.exports = async function handler(req, res){
           }
         }else throw { code:"video_unavailable" };
       }catch(e){
+        if(e?.name === "TimeoutError" || e?.name === "AbortError") return res.status(504).json({ code:"timeout", message:"El video tardó demasiado." });
         const code = e?.code === "video_too_large" ? "video_too_large" : "video_unavailable";
         return res.status(422).json({ code, message: code === "video_too_large" ? "El video es muy pesado." : "No se pudo abrir el video." });
       }
@@ -106,8 +107,9 @@ module.exports = async function handler(req, res){
       const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent", {
         method:"POST",
         headers:{ "content-type":"application/json", "x-goog-api-key":process.env.GEMINI_API_KEY },
+        signal: AbortSignal.timeout(Math.max(8000, deadline - Date.now())),
         body: JSON.stringify({ systemInstruction:{ parts:[{ text:systemG }] }, contents,
-          generationConfig:{ maxOutputTokens: 16384, ...(body.json ? { responseMimeType:"application/json" } : {}) } }),
+          generationConfig:{ maxOutputTokens: 16384, ...(/flash/.test(model) ? { thinkingConfig:{ thinkingBudget: 0 } } : {}), ...(body.json ? { responseMimeType:"application/json" } : {}) } }),
       });
       const d = await r.json().catch(() => ({}));
       if(!r.ok){
@@ -153,5 +155,15 @@ module.exports = async function handler(req, res){
     return res.status(200).json({ text, truncated: d.stop_reason === "max_tokens" });
   }catch(e){
     return res.status(502).json({ code:"upstream_error", message:"No se pudo contactar a la IA." });
+  }
+}
+
+module.exports = async function handler(req, res){
+  const deadline = Date.now() + 52000;
+  try{ return await run(req, res, deadline); }
+  catch(e){
+    if(res.headersSent) return;
+    const timeout = e?.name === "TimeoutError" || e?.name === "AbortError" || e?.code === "timeout";
+    return res.status(timeout ? 504 : 500).json({ code: timeout ? "timeout" : "upstream_error", message: timeout ? "El video tardó demasiado." : "Error inesperado en el servidor." });
   }
 };

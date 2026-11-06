@@ -1474,10 +1474,11 @@ const ERR = {
   session_expired:"Tu sesión expiró.",
   video_unavailable:"No pude abrir ese video (puede ser privado o estar bloqueado). Copia la descripción o sube una captura del plato.",
   video_too_large:"Ese video es muy pesado para analizarlo. Copia la descripción o sube una captura del plato.",
+  timeout:"El video tardó demasiado en procesarse. Prueba con uno más corto, o copia la descripción / sube una captura del plato.",
   not_configured:"La IA aún no está configurada en el servidor (falta la clave).",
   offline:"Sin conexión: la IA necesita internet. Tu recetario y el modo cocina sí funcionan."
 };
-const errMsg = e => ERR[e?.code] || "Algo falló con la conexión. Intenta de nuevo.";
+const errMsg = e => ERR[e?.code] || ("Algo falló con la conexión. Intenta de nuevo." + (e?.message ? " (" + e.message + ")" : ""));
 const noAIMsg = "La IA no está disponible ahora.";
 const strip = r => { const {svg, _light, _refri, _src, _thumb, recorte_comida, ejemplo, folder, rating, notes, cooked, savedAt, updatedAt, lastCooked, id, ...rest} = r; return rest; };
 
