@@ -1601,7 +1601,22 @@ function shareIntake(){
   if(parseLinks(all).links.length) read(); else toast("Texto recibido. Toca Analizar receta.");
 }
 
+/* Si sales de la app mientras analiza (por ejemplo a TikTok), el trabajo queda pendiente y se retoma al volver */
+let JOB = null, hiddenAt = 0, retries = 0;
+const PENDING = "recetok_pending";
+function resumePending(){
+  const p = lsGet(PENDING, null);
+  if(!p || !p.raw || Date.now() - p.t > 30*60*1000){ if(p) try{ localStorage.removeItem(PENDING); }catch{} return; }
+  if(JOB && Date.now() - JOB.t < 200000) return;                         // sigue en marcha: que termine
+  if(JOB){ try{ JOB.ctrl.abort(); }catch{} JOB = null; }
+  $("#txt").value = p.raw;
+  $("#status").innerHTML = `<span class="dot"></span> Retomando tu receta donde la dejaste…`;
+  read();
+}
+document.addEventListener("visibilitychange", () => { if(document.hidden){ hiddenAt = Date.now(); if(JOB) JOB.hid = true; } else { try{ resumePending(); }catch{} hiddenAt = 0; } });
+window.addEventListener("pageshow", e => { if(e.persisted) try{ resumePending(); }catch{} });
 async function read(force){
+  if(force !== "retry") retries = 0;
   const raw = $("#txt").value.trim();
   if(!raw && !images.length){ $("#status").innerHTML = `<span class="err">Pega el link y el texto del video, o sube una captura.</span>`; return; }
   const { links, rest } = parseLinks(raw);
@@ -1611,7 +1626,7 @@ async function read(force){
   const ck = link && !images.length ? linkId(link.url) + "|" + prefText() + "|" + (rest || "").slice(0, 80) : "";
   const hit = ck && force !== true ? cacheGet(ck) : null;
   if(hit){
-    const r = structuredClone(hit.r); r.id = uid(); load(r); saveHist(r);
+    const r = structuredClone(hit.r); r.id = uid(); load(r); saveHist(r); try{ localStorage.removeItem(PENDING); }catch{}
     $("#status").innerHTML = `Listo ✓ · receta guardada de antes, sin gastar IA. <button class="btn small" id="reRun">Volver a analizar</button>`;
     $("#reRun").onclick = () => read(true); scrollToResult(); return;
   }
@@ -1623,13 +1638,20 @@ async function read(force){
   const src = links.length ? links.map(l=>`${l.platform.name} (${l.url})${l.words.length?` — palabras del enlace: "${l.words.join(" ")}"`:""}`).join("; ") : "";
   const txt = rest || (hint ? `(Solo hay un enlace. Deduce la receta a partir de estas palabras del enlace: "${hint}")` : "");
   const go = $("#go"); go.disabled = true;
+  if(JOB){ try{ JOB.ctrl.abort(); }catch{} }
+  const me = JOB = { id:uid(), ctrl:new AbortController(), t:Date.now(), hid:document.hidden };
+  if(!images.length) lsSet(PENDING, { raw, t:Date.now() });
+  try{ navigator.wakeLock?.request("screen").then(l=>{ me.lock = l; }).catch(()=>{}); }catch{}
+  const done = () => { try{ me.lock?.release(); }catch{} };
   $("#status").innerHTML = `<span class="dot"></span> ${canWatch ? "Viendo el video… los videos largos pueden tardar 1 a 2 minutos" : "Leyendo la receta… esto toma unos segundos"}`;
   try{
-    const opts = {};
+    const opts = { signal: me.ctrl.signal };
     if(images.length) opts.images = images;
     if(canWatch) opts.videoUrl = link.url;
     let fb = ""; opts.onMeta = m => { fb = m?.fallback || ""; };
     const r = await sample.json(PROMPT(txt, !!images.length, src, canWatch), opts);
+    if(JOB !== me) return;                                           // llegó tarde: ya hay otro intento
+    try{ localStorage.removeItem(PENDING); }catch{}
     if(!r || r.error){ $("#status").innerHTML = `<span class="err">${esc(r?.error || "No encontré una receta ahí.")}</span>`; return; }
     r.id = uid();
     if(images.length) r._thumb = await cropFood(images, r.recorte_comida);
@@ -1641,9 +1663,17 @@ async function read(force){
     $("#status").textContent = r._src?.guessed ? "Listo ✓ · receta deducida solo del título del enlace; revisa las cantidades." : "Listo ✓";
     scrollToResult();
   }catch(e){
+    if(JOB !== me || e?.code === "cancelled") return;
+    if((e?.code === "upstream_error" || e?.code === "offline") && !images.length && me.hid && retries < 3){
+      retries++; go.disabled = false; done(); JOB = null;
+      $("#status").innerHTML = `<span class="dot"></span> Se pausó al salir de la app. Retomando…`;
+      if(document.hidden) return;                                     // al volver, resumePending() lo continúa
+      setTimeout(() => { if(!JOB) read("retry"); }, 1500); return;
+    }
+    try{ localStorage.removeItem(PENDING); }catch{}
     $("#status").innerHTML = `<span class="err">${errMsg(e)}</span>`;
     if(e?.code==="images_unavailable"){ images=[]; $("#thumbs").innerHTML=""; $("#fileBtn").hidden = true; }
-  }finally{ go.disabled = false; }
+  }finally{ if(JOB === me){ go.disabled = false; done(); JOB = null; } }
 }
 
 async function variantCall(mode, prompt, opts={}){
@@ -2651,6 +2681,7 @@ route();
   }catch{}
   try{ downloads = await window.claude?.use?.("downloads"); }catch{}
   try{ shareIntake(); }catch{}
+  try{ if(!$("#txt").value) resumePending(); }catch{}
 })();
 </script>
 
