@@ -42,6 +42,8 @@ async function uploadToGemini(buf, key){
 }
 
 async function run(req, res, deadline){
+  const t0 = Date.now(); res.stage = "inicio";
+  const where = () => "etapa: " + res.stage + ", " + Math.round((Date.now() - t0) / 1000) + " s";
   res.setHeader("Cache-Control", "no-store");
   if(req.method !== "POST") return res.status(405).json({ code:"invalid_request", message:"Usa POST." });
   if(!process.env.GEMINI_API_KEY && !process.env.ANTHROPIC_API_KEY) return res.status(503).json({ code:"not_configured", message:"Falta GEMINI_API_KEY en Vercel." });
@@ -71,26 +73,28 @@ async function run(req, res, deadline){
         if(/^(youtube\.com|youtu\.be)$/.test(host)){
           videoPart = { fileData:{ fileUri: body.videoUrl } };
         }else if(/(^|\.)tiktok\.com$/.test(host)){
-          const info = await (await fetch("https://www.tikwm.com/api/?url=" + encodeURIComponent(body.videoUrl), { signal: AbortSignal.timeout(10000) })).json();
+          res.stage = "buscar video"; const info = await (await fetch("https://www.tikwm.com/api/?url=" + encodeURIComponent(body.videoUrl), { signal: AbortSignal.timeout(10000) })).json();
           const play = info?.data?.play;
           if(!play) throw { code:"video_unavailable" };
           videoTitle = String(info.data.title || "");
-          const vr = await fetch(play.startsWith("http") ? play : "https://www.tikwm.com" + play, { signal: AbortSignal.timeout(45000) });
-          const buf = Buffer.from(await vr.arrayBuffer());
+          res.stage = "descargar video"; const vr = await fetch(play.startsWith("http") ? play : "https://www.tikwm.com" + play, { signal: AbortSignal.timeout(45000) });
+          const buf = Buffer.from(await vr.arrayBuffer()); res.stage = "subir video a Gemini";
           if(!vr.ok || !buf.length) throw { code:"video_unavailable" };
           if(buf.length > 100 * 1024 * 1024) throw { code:"video_too_large" };
           if(buf.length <= 12 * 1024 * 1024){
             videoPart = { inlineData:{ mimeType:"video/mp4", data: buf.toString("base64") } };
           }else{
             videoPart = await uploadToGemini(buf, process.env.GEMINI_API_KEY);
+            res.stage = "analizar con Gemini";
           }
         }else throw { code:"video_unavailable" };
       }catch(e){
-        if(e?.name === "TimeoutError" || e?.name === "AbortError") return res.status(504).json({ code:"timeout", message:"El video tardó demasiado." });
+        if(e?.name === "TimeoutError" || e?.name === "AbortError") return res.status(504).json({ code:"timeout", message: where() });
         const code = e?.code === "video_too_large" ? "video_too_large" : "video_unavailable";
         return res.status(422).json({ code, message: code === "video_too_large" ? "El video es muy pesado." : "No se pudo abrir el video." });
       }
     }
+    res.stage = res.stage === "inicio" || !videoPart ? "analizar con Gemini" : res.stage;
     const models = [...new Set([process.env.GEMINI_MODEL, "gemini-3.8-flash", "gemini-3.6-flash", "gemini-3-flash-preview"].filter(Boolean))];
     const contents = messages.map((m, i) => {
       const parts = [{ text:String(m.content||"") }];
@@ -110,14 +114,17 @@ async function run(req, res, deadline){
       outer: for(let round = 0; round < 3; round++){
         for(const model of models){
           if(deadline - Date.now() < 15000) break outer;
-          r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent", {
+          const call = extras => fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent", {
             method:"POST",
             headers:{ "content-type":"application/json", "x-goog-api-key":process.env.GEMINI_API_KEY },
             signal: AbortSignal.timeout(Math.max(8000, deadline - Date.now())),
             body: JSON.stringify({ systemInstruction:{ parts:[{ text:systemG }] }, contents,
-              generationConfig:{ maxOutputTokens: 16384, ...(body.json ? { responseMimeType:"application/json" } : {}) } }),
+              generationConfig:{ maxOutputTokens: 16384, ...extras, ...(body.json ? { responseMimeType:"application/json" } : {}) } }),
           });
+          const fast = videoPart ? { thinkingConfig:{ thinkingLevel:"low" }, mediaResolution:"MEDIA_RESOLUTION_LOW" } : { thinkingConfig:{ thinkingLevel:"low" } };
+          r = await call(fast);
           d = await r.json().catch(() => ({}));
+          if(r.status === 400 && !/API key/i.test(d?.error?.message || "")){ r = await call({}); d = await r.json().catch(() => ({})); }
           if(r.ok || !busy()) break outer;   // éxito o error que no se arregla cambiando de modelo
         }
         await new Promise(res2 => setTimeout(res2, 4000 * (round + 1)));  // todos ocupados: esperar y reintentar
@@ -134,7 +141,7 @@ async function run(req, res, deadline){
       if(!text.trim()) return res.status(502).json({ code:"empty_completion", message:"La IA no respondió." });
       return res.status(200).json({ text, truncated: cand?.finishReason === "MAX_TOKENS" });
     }catch(e){
-      if(e?.name === "TimeoutError" || e?.name === "AbortError") return res.status(504).json({ code:"timeout", message:"La IA tardó demasiado." });
+      if(e?.name === "TimeoutError" || e?.name === "AbortError") return res.status(504).json({ code:"timeout", message: where() });
       return res.status(502).json({ code:"upstream_error", message:"No se pudo contactar a la IA (" + (e?.name || "error") + ": " + String(e?.message || "").slice(0,80) + ")." });
     }
   }
@@ -176,6 +183,6 @@ module.exports = async function handler(req, res){
   catch(e){
     if(res.headersSent) return;
     const timeout = e?.name === "TimeoutError" || e?.name === "AbortError" || e?.code === "timeout";
-    return res.status(timeout ? 504 : 500).json({ code: timeout ? "timeout" : "upstream_error", message: timeout ? "El video tardó demasiado." : "Error inesperado en el servidor." });
+    return res.status(timeout ? 504 : 500).json({ code: timeout ? "timeout" : "upstream_error", message: timeout ? "etapa: " + (res.stage || "?") : "Error inesperado en el servidor." });
   }
 };

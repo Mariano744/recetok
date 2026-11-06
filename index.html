@@ -1479,7 +1479,7 @@ const ERR = {
   not_configured:"La IA aún no está configurada en el servidor (falta la clave).",
   offline:"Sin conexión: la IA necesita internet. Tu recetario y el modo cocina sí funcionan."
 };
-const errMsg = e => ERR[e?.code] || ("Algo falló con la conexión. Intenta de nuevo." + (e?.message ? " (" + e.message + ")" : ""));
+const errMsg = e => (e?.code === "timeout" && ERR.timeout ? ERR.timeout + (e.message ? " (" + e.message + ")" : "") : ERR[e?.code]) || ("Algo falló con la conexión. Intenta de nuevo." + (e?.message ? " (" + e.message + ")" : ""));
 const noAIMsg = "La IA no está disponible ahora.";
 const strip = r => { const {svg, _light, _refri, _src, _thumb, recorte_comida, ejemplo, folder, rating, notes, cooked, savedAt, updatedAt, lastCooked, id, ...rest} = r; return rest; };
 
