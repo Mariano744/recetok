@@ -41,6 +41,15 @@
 .menu h4,.menu p,.evtips p{margin:0}
 @media (max-width:480px){.tab .i{display:none}.tab{padding:6px 9px}}
 @media (max-width:520px){.dishes li{grid-template-columns:1fr auto}.dtype{grid-column:1/-1;justify-self:start}}
+
+/* ---- Copia de restaurantes ---- */
+.copycat{display:grid;gap:10px;margin-top:18px;padding:16px 18px;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.copycat h3{font-size:1.05rem;font-weight:650;margin:0}
+.ccform{display:flex;gap:8px;flex-wrap:wrap}
+.ccform input{flex:1;min-width:220px;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+.ccchips{display:flex;flex-wrap:wrap;gap:6px}
+.ccchips .chip small{color:var(--muted);font-weight:400;margin-left:4px}
+.copycat p{margin:0}
 </style>
 <title>Recetok</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -750,6 +759,12 @@ ol.steps li .mins{display:inline-block;margin-left:8px;font:500 .72rem var(--f-n
         <p class="hint" id="hint">Con una captura del plato terminado se recorta la foto de la comida. Los videos de YouTube y TikTok se analizan solos; en Instagram, Facebook y otras redes acompaña el link con el texto o una captura.</p>
         <div class="status" id="status" aria-live="polite"></div>
         <div class="history" id="history"></div>
+        <div class="copycat" id="copycat">
+          <div class="sh"><span class="eyebrow">Copia casera</span><h3>Recetas de restaurantes famosos</h3></div>
+          <form class="ccform" id="ccForm"><input type="text" id="ccIn" maxlength="90" placeholder="Restaurante y plato… ej. Chick-fil-A sándwich de pollo" aria-label="Restaurante y plato a copiar"><button class="btn primary" id="ccGo">Copiar receta</button></form>
+          <div class="ccchips" id="ccChips"></div>
+          <p class="muted small">Son aproximaciones caseras hechas por la IA; no son las recetas oficiales ni secretas de cada cadena.</p>
+        </div>
       </div>
     </header>
 
@@ -1818,6 +1833,34 @@ $("#evList").addEventListener("click", ev => {
   const b = ev.target.closest("[data-act]"); if(!b || b.tagName === "SELECT") return;
   const card = b.closest(".evcard"); if(card) evAction(card, b.dataset.act, b);
 });
+
+
+/* ---------- Copia casera de restaurantes famosos ---------- */
+const COPY_LIST = [["McDonald's","Big Mac"],["McDonald's","McNuggets con salsa agridulce"],["Wendy's","Chili"],["Burger King","Whopper"],["KFC","Pollo frito original"],
+  ["Chick-fil-A","Sándwich de pollo"],["Popeyes","Sándwich de pollo picante"],["Taco Bell","Crunchwrap Supreme"],["Chipotle","Burrito bowl de pollo"],["In-N-Out","Double-Double animal style"],
+  ["Shake Shack","ShackBurger"],["Five Guys","Papas fritas estilo cajún"],["Panda Express","Orange Chicken"],["Olive Garden","Zuppa Toscana"],["Olive Garden","Breadsticks"],
+  ["Cinnabon","Rollo de canela"],["Starbucks","Frappuccino de caramelo"],["Texas Roadhouse","Panecillos con mantequilla de miel"],["Subway","Sándwich italiano BMT"],["Domino's","Pizza de pepperoni"]];
+function drawCopyChips(){
+  $("#ccChips").innerHTML = COPY_LIST.map(([r,d],i) => `<button type="button" class="chip" data-i="${i}">${esc(r)} <small>${esc(d)}</small></button>`).join("");
+}
+async function copyRecipe(q){
+  q = clip(q, 90); if(!q) return;
+  if(!sample){ $("#status").innerHTML = `<span class="err">${noAIMsg}</span>`; return; }
+  const btns = $$("#ccChips .chip, #ccGo"); btns.forEach(b => b.disabled = true);
+  $("#status").innerHTML = `<span class="dot"></span> Armando la versión casera de ${esc(q)}…`;
+  const txt = `Quiero la versión casera (copycat) de este plato de restaurante: ${q}.
+Reproduce lo más fielmente posible el sabor, la textura y la presentación del original, con ingredientes que se consigan en Perú (o sustitutos cercanos, indicados en el nombre del ingrediente). En "descripcion" aclara que es una aproximación casera y no la receta oficial. En "nota_salud" compara con las calorías aproximadas del plato original del restaurante. Si el plato no existe o no lo conoces, devuelve {"error":"..."}.`;
+  try{
+    const r = await sample.json(PROMPT(txt, false, "", false), {});
+    if(!r || r.error || !r.nombre){ $("#status").innerHTML = `<span class="err">${esc(r?.error || "No pude armar esa receta. Prueba con otro plato.")}</span>`; return; }
+    r.id = uid(); load(r); saveHist(r);
+    $("#status").textContent = "Listo ✓ · versión casera aproximada"; scrollToResult();
+  }catch(e){ $("#status").innerHTML = `<span class="err">${errMsg(e)}</span>`; }
+  finally{ btns.forEach(b => b.disabled = false); }
+}
+$("#ccChips").addEventListener("click", e => { const b = e.target.closest("[data-i]"); if(b){ const [r,d] = COPY_LIST[+b.dataset.i]; copyRecipe(`${r} — ${d}`); } });
+$("#ccForm").addEventListener("submit", e => { e.preventDefault(); copyRecipe($("#ccIn").value); });
+drawCopyChips();
 
 /* ---------- Navegación ---------- */
 const VIEWS = ["analizar","recetario","semana","eventos"];
