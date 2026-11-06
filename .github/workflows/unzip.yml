@@ -9,14 +9,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Descomprimir y guardar
+      - name: Descomprimir
         run: |
-          if [ -f recetok-app.zip ]; then
-            unzip -o recetok-app.zip
-            git rm -q recetok-app.zip
-            git config user.name "github-actions"
-            git config user.email "github-actions@users.noreply.github.com"
-            git add -A
-            git commit -m "Descomprimir app"
-            git push
+          ZIP=$(ls -1 *.zip 2>/dev/null | sort -V | tail -n 1 || true)
+          if [ -n "$ZIP" ]; then
+            mkdir /tmp/x
+            unzip -o "$ZIP" -d /tmp/x
+            if [ -d /tmp/x/recetok-app ]; then cp -a /tmp/x/recetok-app/. .; else cp -a /tmp/x/. .; fi
+            rm -f ./*.zip
           fi
+      - name: Subir cambios
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || (git commit -m "Descomprimir app" && git push)
