@@ -1,7 +1,7 @@
 // Puente entre la app y la API de Claude. La clave vive solo aquí, en el servidor.
 // Variables de entorno en Vercel:
 //   GEMINI_API_KEY     clave gratis de https://aistudio.google.com/apikey (recomendada)
-//   GEMINI_MODEL       opcional; por defecto gemini-2.5-flash
+//   GEMINI_MODEL       opcional; opcional (se prueba gemini-3.8-flash por defecto)
 //   ANTHROPIC_API_KEY  opcional; solo si no hay clave de Gemini
 //   APP_CODE           código de acceso que la app pide una vez (obligatorio)
 
@@ -91,7 +91,7 @@ async function run(req, res, deadline){
         return res.status(422).json({ code, message: code === "video_too_large" ? "El video es muy pesado." : "No se pudo abrir el video." });
       }
     }
-    const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+    const models = [...new Set([process.env.GEMINI_MODEL, "gemini-3.8-flash", "gemini-3.6-flash", "gemini-3-flash-preview"].filter(Boolean))];
     const contents = messages.map((m, i) => {
       const parts = [{ text:String(m.content||"") }];
       if(i === messages.length-1){
@@ -104,14 +104,20 @@ async function run(req, res, deadline){
     const systemG = "Eres el asistente de cocina y nutrición de la app Recetok. Respondes en español." +
       (body.json ? " Tu respuesta será leída por un programa: responde SOLO con el JSON pedido, sin texto antes ni después y sin bloques de código." : "");
     try{
-      const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent", {
-        method:"POST",
-        headers:{ "content-type":"application/json", "x-goog-api-key":process.env.GEMINI_API_KEY },
-        signal: AbortSignal.timeout(Math.max(8000, deadline - Date.now())),
-        body: JSON.stringify({ systemInstruction:{ parts:[{ text:systemG }] }, contents,
-          generationConfig:{ maxOutputTokens: 16384, ...(/flash/.test(model) ? { thinkingConfig:{ thinkingBudget: 0 } } : {}), ...(body.json ? { responseMimeType:"application/json" } : {}) } }),
-      });
-      const d = await r.json().catch(() => ({}));
+      let r, d;
+      for(const model of models){
+        r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent", {
+          method:"POST",
+          headers:{ "content-type":"application/json", "x-goog-api-key":process.env.GEMINI_API_KEY },
+          signal: AbortSignal.timeout(Math.max(8000, deadline - Date.now())),
+          body: JSON.stringify({ systemInstruction:{ parts:[{ text:systemG }] }, contents,
+            generationConfig:{ maxOutputTokens: 16384, ...(body.json ? { responseMimeType:"application/json" } : {}) } }),
+        });
+        d = await r.json().catch(() => ({}));
+        // si el modelo ya no existe o no está disponible, se prueba el siguiente
+        if(!r.ok && (r.status === 404 || /no longer available|not found|not supported/i.test(d?.error?.message || "")) && model !== models[models.length-1]) continue;
+        break;
+      }
       if(!r.ok){
         const bad = r.status === 400 && /API key/i.test(d?.error?.message || "") || r.status === 403;
         if(bad) return res.status(503).json({ code:"not_configured", message:"La clave de Gemini no es válida." });
