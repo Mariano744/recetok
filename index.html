@@ -13,7 +13,35 @@
 <meta name="apple-mobile-web-app-title" content="Recetok">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px/1.4 system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}
-.installbtn{margin-left:auto;margin-right:8px}.installbtn + .tabs{margin-left:0}.codebox .row .btn.primary{margin-left:auto}</style>
+.installbtn{margin-left:auto;margin-right:8px}.installbtn + .tabs{margin-left:0}.codebox .row .btn.primary{margin-left:auto}
+/* ---- Eventos ---- */
+.evlink{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--muted);border-radius:12px;padding:12px 14px;font-size:.88rem;margin-top:14px}
+.evlink.ok{border-left-color:var(--brand)}
+.evlink>div{flex:1;min-width:200px;display:flex;flex-direction:column;gap:2px}
+.evlink span{color:var(--muted)}
+.evlink .i{color:var(--brand)}
+.evgrid{display:grid;gap:14px;margin-top:16px;max-width:900px}
+.evcard{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 18px;box-shadow:var(--shadow);display:grid;gap:10px}
+.evtop{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.evtop h3{font-size:1.15rem;font-weight:650;margin:2px 0}
+.evact{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.evn{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted)}
+.evn select{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.evstat{font-size:.86rem;color:var(--muted);min-height:0}
+.evstat:empty{display:none}
+.menu{display:grid;gap:12px;border-top:1px solid var(--line);padding-top:12px}
+.menu h4{font-size:1rem;font-weight:650}
+.dishes{list-style:none;display:grid;gap:8px;padding:0;margin:0}
+.dishes li{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+.dishes li>div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.dtype{font:700 .66rem var(--f-body);letter-spacing:.07em;text-transform:uppercase;color:var(--brand);background:var(--brand-soft);border-radius:6px;padding:3px 7px;white-space:nowrap}
+.evrow{display:flex;gap:10px;flex-wrap:wrap}
+.evtips{display:grid;gap:4px;font-size:.88rem}
+.evtips ul{margin:0;padding-left:18px;display:grid;gap:3px}
+.menu h4,.menu p,.evtips p{margin:0}
+@media (max-width:480px){.tab .i{display:none}.tab{padding:6px 9px}}
+@media (max-width:520px){.dishes li{grid-template-columns:1fr auto}.dtype{grid-column:1/-1;justify-self:start}}
+</style>
 <title>Recetok</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;600;700&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500&family=Lilita+One&display=swap">
@@ -693,6 +721,7 @@ ol.steps li .mins{display:inline-block;margin-left:8px;font:500 .72rem var(--f-n
       <a class="tab" href="#" data-view="analizar" id="tabA"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg><span>Analizar</span></a>
       <a class="tab" href="#recetario" data-view="recetario" id="tabR"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/></svg><span>Recetario</span><b class="tabcount" id="bookCount"></b></a>
       <a class="tab" href="#semana" data-view="semana" id="tabS"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg><span>Semana</span></a>
+      <a class="tab" href="#eventos" data-view="eventos" id="tabE"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/></svg><span>Eventos</span></a>
     </div>
   </div>
 </nav>
@@ -706,7 +735,7 @@ ol.steps li .mins{display:inline-block;margin-left:8px;font:500 .72rem var(--f-n
         <div class="input">
           <div class="in-head">
             <label class="in-title" for="txt">Analiza una receta</label>
-            <span class="in-sub">Pega el link y el texto del video (TikTok, YouTube, Instagram, Facebook o un blog) o sube una captura del plato.</span>
+            <span class="in-sub">Pega el link de un video de YouTube o TikTok y la IA lo ve por ti. Con otras redes o blogs, acompaña el link con el texto o sube una captura del plato.</span>
           </div>
           <textarea id="txt" placeholder="Pega el link y la descripción, la transcripción o lo que viste en el video. Ej: https://youtu.be/… pasta con pollo, crema, parmesano y ajo"></textarea>
           <div class="links" id="links" hidden></div>
@@ -718,13 +747,22 @@ ol.steps li .mins{display:inline-block;margin-left:8px;font:500 .72rem var(--f-n
             <button class="btn primary" id="go">Analizar receta <kbd>Ctrl ↵</kbd></button>
           </div>
         </div>
-        <p class="hint" id="hint">Con una captura del plato terminado se recorta la foto de la comida. Los links se reconocen, pero la IA no puede abrir los videos: acompáñalos con el texto o una captura.</p>
+        <p class="hint" id="hint">Con una captura del plato terminado se recorta la foto de la comida. Los videos de YouTube y TikTok se analizan solos; en Instagram, Facebook y otras redes acompaña el link con el texto o una captura.</p>
         <div class="status" id="status" aria-live="polite"></div>
         <div class="history" id="history"></div>
       </div>
     </header>
 
     <main class="result" id="result"></main>
+  </section>
+
+  <!-- ============ EVENTOS ============ -->
+  <section class="view" id="view-eventos" hidden>
+    <div class="vhead">
+      <div class="sh"><span class="eyebrow">Según tu agenda</span><h2 class="vtitle">Menús para tus eventos</h2></div>
+    </div>
+    <div id="evLink"></div>
+    <div class="evgrid" id="evList"></div>
   </section>
 
   <!-- ============ RECETARIO ============ -->
@@ -1605,15 +1643,193 @@ Pregunta: ${question}`, { modelTier:"quick", cache:false, signal:askCtl.signal, 
 $("#go").addEventListener("click", read);
 $("#txt").addEventListener("keydown", e => { if(e.key==="Enter" && (e.metaKey||e.ctrlKey)) read(); });
 
+/* ---------- Eventos: menú según la ocasión (conectado con Cumpli) ---------- */
+const CUMPLI_URL = "https://cumpli1.vercel.app";
+const EV_KEY = "recetok_cumpli", MENU_KEY = "recetok_menus", PEOPLE_KEY = "recetok_people";
+const pad2 = n => String(n).padStart(2,"0");
+const dKey = d => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+const dFrom = k => { const [y,m,d] = String(k).split("-").map(Number); return new Date(y,(m||1)-1,d||1,12); };
+const dDiff = (a,b) => Math.round((dFrom(a)-dFrom(b))/864e5);
+const dOk = k => /^\d{4}-\d{2}-\d{2}$/.test(String(k||""));
+const nthWeekday = (y, m, wd, n) => { const f = new Date(y, m-1, 1, 12); return new Date(y, m-1, 1 + (wd - f.getDay() + 7) % 7 + (n-1)*7, 12); };
+const fmtDay = k => dFrom(k).toLocaleDateString("es-PE", { day:"numeric", month:"short" }).replace(".","");
+const clip = (s, n=60) => String(s ?? "").replace(/\s+/g," ").trim().slice(0,n);
+
+/* Lo que llega desde Cumpli viaja en el enlace: recetok…/#cumpli=<json en base64url> */
+function ingestCumpli(){
+  const m = location.hash.match(/^#cumpli=([A-Za-z0-9_-]+)/);
+  if(!m) return false;
+  try{
+    const b = m[1].replace(/-/g,"+").replace(/_/g,"/"); const bin = atob(b + "=".repeat((4 - b.length % 4) % 4));
+    const j = JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0))));
+    if(j && j.v === 1){
+      const ev = e => ({ id:clip(e?.id,40), nombre:clip(e?.nombre), inicio:e?.inicio, fin:e?.fin, region:clip(e?.region,30) });
+      lsSet(EV_KEY, { v:1, hoy:dOk(j.hoy) ? j.hoy : dKey(new Date()), recibido:Date.now(),
+        activos:(j.activos||[]).slice(0,8).map(ev), proximos:(j.proximos||[]).slice(0,14).map(ev),
+        fechas:(j.fechas||[]).slice(0,10).map(f => ({ nombre:clip(f?.nombre), tipo:clip(f?.tipo,20), fecha:f?.fecha })) });
+      toast(`${IC.check} Eventos de Cumpli recibidos`);
+    }
+  }catch{}
+  history.replaceState(null, "", location.pathname + "#eventos");
+  return true;
+}
+
+/* Calendario peruano de respaldo (cuando todavía no hay conexión con Cumpli) */
+function builtinEvents(today){
+  const y = dFrom(today).getFullYear(), out = [];
+  const fixed = [["san-valentin","San Valentín",2,14,2,14],["fiestas-patrias","Fiestas Patrias",7,28,7,29],["santa-rosa","Santa Rosa de Lima",8,30,8,30],
+    ["senor-milagros","Señor de los Milagros",10,18,10,28],["halloween","Halloween",10,31,10,31],["cancion-criolla","Día de la Canción Criolla",10,31,10,31],
+    ["todos-santos","Todos los Santos",11,1,11,2],["navidad","Navidad",12,24,12,25],["ano-nuevo","Año Nuevo",12,31,1,1]];
+  for(const Y of [y-1, y, y+1]){
+    fixed.forEach(([id,nombre,m1,d1,m2,d2]) => out.push({ id, nombre, inicio:dKey(new Date(Y,m1-1,d1,12)), fin:dKey(new Date(m2<m1 ? Y+1 : Y, m2-1, d2, 12)), region:"Perú" }));
+    const ma = dKey(nthWeekday(Y,5,0,2)), pa = dKey(nthWeekday(Y,6,0,3));
+    out.push({ id:"dia-madre", nombre:"Día de la Madre", inicio:ma, fin:ma, region:"Perú" }, { id:"dia-padre", nombre:"Día del Padre", inicio:pa, fin:pa, region:"Perú" });
+  }
+  return out;
+}
+function eventList(){
+  const today = dKey(new Date()), L = lsGet(EV_KEY, null), linked = !!(L && L.v === 1);
+  let raw = [];
+  if(linked){
+    [...(L.activos||[]), ...(L.proximos||[])].forEach(e => raw.push({ ...e, tipo:"temporada" }));
+    (L.fechas||[]).forEach(f => raw.push({ id:"f-"+clip(f.nombre,20)+f.fecha, nombre:f.nombre, inicio:f.fecha, fin:f.fecha, tipo:f.tipo || "other", personal:true }));
+  }else raw = builtinEvents(today);
+  const seen = new Set(), per = {};
+  return raw.filter(e => e && e.nombre && dOk(e.inicio)).map(e => ({ ...e, fin: dOk(e.fin) ? e.fin : e.inicio }))
+    .filter(e => e.fin >= today && dDiff(e.inicio, today) <= 75)
+    .sort((a,b) => (a.inicio<=today?0:1) - (b.inicio<=today?0:1) || a.inicio.localeCompare(b.inicio))
+    .filter(e => { const k = e.id+"|"+e.inicio; if(seen.has(k)) return false; seen.add(k); per[e.id] = (per[e.id]||0)+1; return per[e.id] <= 2; })
+    .slice(0, 14);
+}
+const evKey = e => `${e.id}|${e.inicio}`;
+const TIPOS = { birthday:"cumpleaños", exam:"examen o jornada fuerte de estudio", family:"reunión familiar", goal:"meta lograda para celebrar", holiday:"feriado, día libre en casa", free:"día libre en casa", other:"ocasión especial" };
+function evWhen(e, today){
+  if(e.inicio <= today) return { badge: e.inicio === e.fin ? "Hoy" : "En curso", text: e.inicio === e.fin ? "Hoy" : `Hasta el ${fmtDay(e.fin)}` };
+  const n = dDiff(e.inicio, today), r = e.inicio === e.fin ? fmtDay(e.inicio) : `${fmtDay(e.inicio)} – ${fmtDay(e.fin)}`;
+  return { badge: n === 1 ? "Mañana" : `En ${n} días`, text: r };
+}
+
+/* Menú con IA */
+const MENU_SCHEMA = `{"titulo":string,"contexto":string (1-2 frases: tradición o por qué este menú),"platos":[{"tipo":"entrada"|"plato de fondo"|"postre"|"bebida"|"snack","nombre":string,"descripcion":string (1 frase),"tiempo_min":number,"calorias_porcion":number}] (de 4 a 6 platos),"organizacion":[string] (3 a 4 consejos de tiempos: qué dejar listo antes),"compras":[string] (ingredientes clave)}`;
+function menuPrompt(e, n){
+  const cuando = e.inicio === e.fin ? `el ${e.inicio}` : `del ${e.inicio} al ${e.fin}`;
+  const tipo = e.personal ? `Es una fecha personal de tipo: ${TIPOS[e.tipo] || TIPOS.other}.` : `Es un evento de temporada${e.region ? " ("+e.region+")" : ""}.`;
+  return `Eres un cocinero y nutricionista peruano. Arma el menú para esta ocasión.
+Ocasión: "${e.nombre}" ${cuando}. ${tipo} Para ${n} ${n===1?"persona":"personas"}.
+Objetivos del usuario: ${prefText()}.
+Reglas: platos tradicionales o apropiados para la ocasión en Perú, con ingredientes fáciles de conseguir. Si es un examen o jornada de estudio, prioriza comidas ligeras y snacks de energía sostenida (nada pesado). Si es un día de partido, picoteo para verlo. Si es cumpleaños, incluye un postre festivo. Equilibra lo tradicional con opciones más saludables.
+Responde SOLO con un objeto JSON con esta forma exacta (todo en español):
+${MENU_SCHEMA}`;
+}
+async function makeMenu(e, n){
+  const r = await sample.json(menuPrompt(e, n), {});
+  const platos = (Array.isArray(r?.platos) ? r.platos : []).filter(p => p && p.nombre).slice(0,8)
+    .map(p => ({ tipo:clip(p.tipo,20) || "plato", nombre:clip(p.nombre,70), descripcion:clip(p.descripcion,140), tiempo_min:Math.round(+p.tiempo_min)||0, calorias_porcion:Math.round(+p.calorias_porcion)||0 }));
+  if(!platos.length) throw { code:"invalid_json" };
+  return { titulo:clip(r.titulo,80) || e.nombre, contexto:clip(r.contexto,260), platos,
+    organizacion:(Array.isArray(r.organizacion) ? r.organizacion : []).slice(0,5).map(x => clip(x,200)),
+    compras:(Array.isArray(r.compras) ? r.compras : []).slice(0,16).map(x => clip(x,40)), n, hecho:Date.now() };
+}
+async function dishRecipe(e, dish, n){
+  const txt = `Receta de ${dish.nombre}${dish.descripcion ? " ("+dish.descripcion+")" : ""} para ${n} personas. Ocasión: ${e.nombre}.`;
+  const r = await sample.json(PROMPT(txt, false, "", false), {});
+  if(!r || r.error || !r.nombre) throw { code:"invalid_json" };
+  r.id = uid(); return r;
+}
+
+/* Pantalla */
+const evNum = () => Math.min(12, Math.max(1, +lsGet(PEOPLE_KEY, 4) || 4));
+const evMenus = () => lsGet(MENU_KEY, {});
+const evCache = {};   // eventos de la pantalla actual, por clave
+function menuHTML(m){
+  return `<div class="menu">
+    <h4>${esc(m.titulo)}</h4>${m.contexto ? `<p class="muted">${esc(m.contexto)}</p>` : ""}
+    <ul class="dishes">${m.platos.map((p,i) => `<li><span class="dtype">${esc(p.tipo)}</span>
+      <div><b>${esc(p.nombre)}</b><span class="muted small">${esc(p.descripcion)}${p.tiempo_min ? ` · ${p.tiempo_min} min` : ""}${p.calorias_porcion ? ` · ${p.calorias_porcion} kcal` : ""}</span></div>
+      <button class="btn small" data-act="dish" data-i="${i}">Ver receta</button></li>`).join("")}</ul>
+    <div class="evrow"><button class="btn primary" data-act="saveall">${IC.book} Convertir en recetas y guardar</button><button class="btn" data-act="regen">${IC.spark} Regenerar</button></div>
+    ${m.organizacion.length ? `<div class="evtips"><span class="label">Organízate</span><ul>${m.organizacion.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
+    ${m.compras.length ? `<div class="evtips"><span class="label">Compras clave</span><p>${m.compras.map(esc).join(", ")}</p></div>` : ""}
+  </div>`;
+}
+function eventCardHTML(e, today, menus){
+  const w = evWhen(e, today), m = menus[evKey(e)], n = m?.n || evNum();
+  return `<article class="evcard" data-k="${esc(evKey(e))}">
+    <div class="evtop">
+      <div><span class="eyebrow">${esc(w.badge)}${e.personal ? " · Tu fecha" : ""}</span><h3>${esc(e.nombre)}</h3><p class="muted small">${esc(w.text)}${e.region ? " · "+esc(e.region) : ""}</p></div>
+      <div class="evact"><label class="evn">Personas <select data-act="n" aria-label="Número de personas">${[1,2,3,4,5,6,8,10,12].map(x => `<option value="${x}"${x===n?" selected":""}>${x}</option>`).join("")}</select></label>
+      <button class="btn primary" data-act="menu">${m ? "Ver menú" : "Preparar menú"}</button></div>
+    </div>
+    <div class="evstat" aria-live="polite"></div>
+    <div class="evmenu" ${m ? "" : "hidden"}>${m ? menuHTML(m) : ""}</div>
+  </article>`;
+}
+function drawEvents(){
+  const L = lsGet(EV_KEY, null), linked = !!(L && L.v === 1), today = dKey(new Date());
+  const ago = L?.recibido ? new Date(L.recibido).toLocaleDateString("es-PE", { day:"numeric", month:"short" }).replace(".","") : "";
+  $("#evLink").innerHTML = linked
+    ? `<div class="evlink ok">${IC.check}<div><b>Conectado con Cumpli</b><span>Eventos recibidos el ${esc(ago)}. Para actualizarlos, vuelve a abrir Recetok desde Cumpli.</span></div><a class="btn small" href="${CUMPLI_URL}" target="_blank" rel="noopener">Abrir Cumpli</a><button class="btn small" id="evUnlink">Desconectar</button></div>`
+    : `<div class="evlink">${IC.link}<div><b>Conecta Cumpli</b><span>En Cumpli ve a <b>Ajustes → Conexiones → Recetok</b> y toca «Abrir Recetok con mis eventos». Mientras tanto uso el calendario de fechas peruanas.</span></div><a class="btn small" href="${CUMPLI_URL}" target="_blank" rel="noopener">Abrir Cumpli</a></div>`;
+  const evs = eventList(), menus = evMenus();
+  Object.keys(evCache).forEach(k => delete evCache[k]); evs.forEach(e => { evCache[evKey(e)] = e; });
+  $("#evList").innerHTML = evs.length ? evs.map(e => eventCardHTML(e, today, menus)).join("")
+    : `<p class="muted">No hay eventos en los próximos 75 días. Agrega fechas especiales en Cumpli y ábrelas desde aquí.</p>`;
+  $("#evUnlink")?.addEventListener("click", () => { try{ localStorage.removeItem(EV_KEY); }catch{} drawEvents(); toast("Cumpli desconectado."); });
+}
+async function evAction(card, act, btn){
+  const e = evCache[card.dataset.k]; if(!e) return;
+  const stat = card.querySelector(".evstat"), box = card.querySelector(".evmenu");
+  const n = +card.querySelector('[data-act="n"]').value || 4; lsSet(PEOPLE_KEY, n);
+  const menus = evMenus(), m = menus[card.dataset.k];
+  if(act === "menu" || act === "regen"){
+    if(act === "menu" && m && m.n === n){ box.hidden = !box.hidden; return; }
+    if(!sample){ stat.innerHTML = `<span class="err">${noAIMsg}</span>`; return; }
+    btn.disabled = true; stat.innerHTML = `<span class="dot"></span> Armando el menú de ${esc(e.nombre)}…`;
+    try{
+      const nm = await makeMenu(e, n); menus[card.dataset.k] = nm;
+      const keys = Object.keys(menus); if(keys.length > 30) delete menus[keys[0]];
+      lsSet(MENU_KEY, menus); box.innerHTML = menuHTML(nm); box.hidden = false; stat.textContent = "";
+      card.querySelector('[data-act="menu"]').textContent = "Ver menú";
+    }catch(err){ stat.innerHTML = `<span class="err">${errMsg(err)}</span>`; }
+    finally{ btn.disabled = false; }
+  }else if(act === "dish"){
+    const dish = m?.platos[+btn.dataset.i]; if(!dish || !sample) return;
+    btn.disabled = true; const t = btn.textContent; btn.textContent = "Leyendo…";
+    try{ const r = await dishRecipe(e, dish, m.n); saveHist(r); goAnalyze(r); }
+    catch(err){ stat.innerHTML = `<span class="err">${errMsg(err)}</span>`; }
+    finally{ btn.disabled = false; btn.textContent = t; }
+  }else if(act === "saveall"){
+    if(!m || !sample) return;
+    btn.disabled = true; let ok = 0; const folder = clip(e.nombre, 30), today = dKey(new Date());
+    if(!Store.meta.folders.includes(folder)){ Store.meta.folders.push(folder); Store.saveMeta(); }
+    const day = e.inicio > today ? e.inicio : today, soon = dDiff(day, today) <= 6;
+    const wd = ["dom","lun","mar","mie","jue","vie","sab"][dFrom(day).getDay()];
+    for(let i = 0; i < m.platos.length; i++){
+      stat.innerHTML = `<span class="dot"></span> Creando recetas ${i+1} de ${m.platos.length}: ${esc(m.platos[i].nombre)}`;
+      try{ const r = await dishRecipe(e, m.platos[i], m.n); r.folder = folder; r.savedAt = Date.now(); await Store.saveRecipe(r); if(soon) addToDay(wd, r.id); ok++; }
+      catch(err){ if(err?.code === "rate_limited" || err?.code === "busy" || err?.code === "not_granted"){ stat.innerHTML = `<span class="err">${errMsg(err)}</span>`; break; } }
+    }
+    updateCounts(); btn.disabled = false;
+    if(ok){ stat.innerHTML = `${IC.check} ${ok} receta${ok>1?"s":""} guardada${ok>1?"s":""} en la carpeta <b>${esc(folder)}</b>${soon ? ` y en tu semana (${DAYS.find(d => d[0]===wd)[1]})` : ""}. <a href="#recetario">Ver recetario</a>`; }
+    else if(!stat.querySelector(".err")) stat.innerHTML = `<span class="err">No se pudo crear ninguna receta. Inténtalo de nuevo.</span>`;
+  }
+}
+$("#evList").addEventListener("click", ev => {
+  const b = ev.target.closest("[data-act]"); if(!b || b.tagName === "SELECT") return;
+  const card = b.closest(".evcard"); if(card) evAction(card, b.dataset.act, b);
+});
+
 /* ---------- Navegación ---------- */
-const VIEWS = ["analizar","recetario","semana"];
+const VIEWS = ["analizar","recetario","semana","eventos"];
 function route(){
+  if(/^#cumpli=/.test(location.hash)) ingestCumpli();
   const h = location.hash.replace("#","");
   const v = VIEWS.includes(h) ? h : "analizar";
   VIEWS.forEach(x => { $("#view-"+x).hidden = x!==v; });
   $$(".tab").forEach(t => t.setAttribute("aria-current", t.dataset.view===v ? "page" : "false"));
   if(v==="recetario") drawBook();
   if(v==="semana") drawWeek();
+  if(v==="eventos") drawEvents();
 }
 window.addEventListener("hashchange", () => { route(); window.scrollTo({top:0}); });
 $("#tabA").addEventListener("click", e => { e.preventDefault(); history.replaceState(null,"",location.pathname+location.search); route(); });
