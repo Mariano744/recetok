@@ -1012,13 +1012,21 @@ function stepMinutes(p){
 /* ---------- Guardado: recetario y semana (nube con respaldo local) ---------- */
 const DEFAULT_FOLDERS = ["Desayunos","Almuerzos","Cenas","Meal prep","Postres"];
 const DAYS = [["lun","Lunes"],["mar","Martes"],["mie","Miércoles"],["jue","Jueves"],["vie","Viernes"],["sab","Sábado"],["dom","Domingo"]];
+/* Copia de seguridad automática (IndexedDB) por si el navegador borra el almacenamiento normal */
+const Mirror = {
+  open(){ return new Promise((ok,no)=>{ try{ const q = indexedDB.open("recetok",1); q.onupgradeneeded = ()=>q.result.createObjectStore("kv"); q.onsuccess = ()=>ok(q.result); q.onerror = ()=>no(q.error); }catch(e){ no(e); } }); },
+  async put(k,v){ try{ const db = await this.open(); db.transaction("kv","readwrite").objectStore("kv").put(v,k); }catch{} },
+  async get(k){ try{ const db = await this.open(); return await new Promise(ok=>{ const q = db.transaction("kv").objectStore("kv").get(k); q.onsuccess = ()=>ok(q.result); q.onerror = ()=>ok(null); }); }catch{ return null; } }
+};
+try{ navigator.storage?.persist?.(); }catch{}
 const Store = {
   mode:"local", col:null, metaRef:null,
   recipes:new Map(),
   meta:{ folders:[...DEFAULT_FOLDERS], plan:{} },
   ready:false,
   async init(){
-    const local = lsGet("recetok_book", null);
+    let local = lsGet("recetok_book", null);
+    if(!local){ const m = await Mirror.get("book"); if(m && Object.keys(m.recipes||{}).length){ local = m; lsSet("recetok_book", m); } }
     if(local){ Object.entries(local.recipes||{}).forEach(([k,v])=>this.recipes.set(k,v)); this.meta = {...this.meta, ...(local.meta||{})}; }
     try{
       const timeout = new Promise(r=>setTimeout(()=>r(null), 10000));
@@ -1042,7 +1050,9 @@ const Store = {
     this.ready = true; this.persistLocal();
   },
   persistLocal(){
-    const ok = lsSet("recetok_book", { recipes:Object.fromEntries(this.recipes), meta:this.meta });
+    const snap = { recipes:Object.fromEntries(this.recipes), meta:this.meta };
+    Mirror.put("book", snap);
+    const ok = lsSet("recetok_book", snap);
     if(!ok && this.mode==="local") toast("No hay espacio en este navegador para guardar más recetas.");
   },
   async saveRecipe(rec){
@@ -1129,6 +1139,7 @@ const stars = (n, max=5) => "★".repeat(Math.round(n||0)) + "☆".repeat(max-Ma
 
 function load(r){
   if(!r.id) r.id = uid();
+  if(r.id !== EXAMPLE.id) lsSet("recetok_last", r);
   S.orig = r; S.mode = "original"; S.servings = Number(r.porciones)||4; S.busy = {};
   render();
 }
@@ -2063,7 +2074,7 @@ function aggregate(){
       const key = norm(i.item);
       const q = splitQty(i.exacta || i.cantidad);
       const mk = key + "|" + (q ? q.unit : "x");
-      const e = map.get(mk) || { name:i.item, v:0, unit:q?.unit, free:!q, recipes:new Set(), cost:0, al:new Set() };
+      const e = map.get(mk) || { k:mk, name:i.item, v:0, unit:q?.unit, free:!q, recipes:new Set(), cost:0, al:new Set() };
       if(q) e.v += q.v;
       e.recipes.add(r.nombre); e.cost += Number(i.precio_s)||0; (i.alergenos||[]).forEach(a=>e.al.add(a));
       map.set(mk, e);
@@ -2072,15 +2083,19 @@ function aggregate(){
   return [...map.values()].sort((a,b)=>norm(a.name).localeCompare(norm(b.name)));
 }
 function drawShopping(){
-  const items = aggregate(); const s = $("#shopping");
-  const total = items.reduce((a,e)=>a+e.cost,0);
+  const have = lsGet("recetok_have", {});
+  const items = aggregate().sort((a,b)=>(have[a.k]?1:0)-(have[b.k]?1:0)); const s = $("#shopping");
+  const total = items.filter(e=>!have[e.k]).reduce((a,e)=>a+e.cost,0);
   if(!items.length){ s.innerHTML = `<div class="sh"><span class="eyebrow">Lista de compras</span><h3>Nada que comprar aún</h3></div><p class="muted">Agrega recetas a los días de la semana.</p>`; return; }
-  const txt = "Lista de compras de la semana\n" + items.map(e=>`• ${e.name}${e.free?"":" — "+fmtUnit(e.v,e.unit)}`).join("\n");
-  s.innerHTML = `<div class="sec-head"><div class="sh"><span class="eyebrow">Toda la semana · ${items.length} productos</span><h3>Lista de compras</h3></div>
-      <button class="btn small" id="copyWeek">${IC.copy} Copiar lista</button></div>
-    <ul class="ing shop">${items.map(e=>`<li><label><input type="checkbox"><span>${esc(e.name)}${e.recipes.size>1?`<em class="multi">en ${e.recipes.size} recetas</em>`:""}</span></label><span class="qty">${e.free?"al gusto":esc(fmtUnit(e.v,e.unit))}</span></li>`).join("")}</ul>
+  const missing = items.filter(e=>!have[e.k]);
+  const txt = "Lista de compras de la semana\n" + missing.map(e=>`• ${e.name}${e.free?"":" — "+fmtUnit(e.v,e.unit)}`).join("\n");
+  s.innerHTML = `<div class="sec-head"><div class="sh"><span class="eyebrow">Toda la semana · faltan ${missing.length} de ${items.length}</span><h3>Lista de compras</h3></div>
+      <button class="btn small" id="copyWeek">${IC.copy} Copiar lo que falta</button></div>
+    <p class="muted" style="margin:0">Marca lo que ya tienes en casa: la app lo recuerda y no lo cuenta.</p>
+    <ul class="ing shop">${items.map(e=>`<li style="${have[e.k]?"opacity:.5;text-decoration:line-through":""}"><label><input type="checkbox" data-k="${esc(e.k)}" ${have[e.k]?"checked":""}><span>${esc(e.name)}${e.recipes.size>1?`<em class="multi">en ${e.recipes.size} recetas</em>`:""}</span></label><span class="qty">${e.free?"al gusto":esc(fmtUnit(e.v,e.unit))}</span></li>`).join("")}</ul>
     ${total?`<p class="cost">${IC.coin} Costo aproximado <b>${soles(total)}</b></p>`:""}`;
-  $("#copyWeek").onclick = () => copyText(txt, $("#copyWeek"), IC.copy+" Copiar lista");
+  $("#copyWeek").onclick = () => copyText(txt, $("#copyWeek"), IC.copy+" Copiar lo que falta");
+  $$("#shopping input[type=checkbox]").forEach(c => c.onchange = () => { const h = lsGet("recetok_have", {}); if(c.checked) h[c.dataset.k] = 1; else delete h[c.dataset.k]; lsSet("recetok_have", h); drawShopping(); });
 }
 
 /* =================== MODO COCINA (JUEGO) =================== */
@@ -2620,7 +2635,7 @@ document.addEventListener("keydown", e => { if(e.key==="Escape" && !$("#shareMod
 $("#gPrac").onclick = e => { Game.practice = !Game.practice; e.currentTarget.setAttribute("aria-pressed", Game.practice); Game.drawAction(); toast(Game.practice ? "Modo práctica: cada minuto dura 1 segundo." : "Tiempos reales."); };
 drawPrefs();
 drawHist();
-load(structuredClone(EXAMPLE));
+{ const last = lsGet("recetok_last", null); load(last && last.nombre && Array.isArray(last.pasos) ? last : structuredClone(EXAMPLE)); }
 route();
 (async () => {
   await Store.init(); updateCounts();
