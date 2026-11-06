@@ -1,6 +1,7 @@
 // Puente entre la app y la API de Claude. La clave vive solo aquí, en el servidor.
 // Variables de entorno en Vercel:
 //   GEMINI_API_KEY     clave gratis de https://aistudio.google.com/apikey (recomendada)
+//   SUPADATA_API_KEY   opcional (plan gratis en supadata.ai): transcripción cuando el video no se puede ver
 //   GEMINI_MODEL       opcional; opcional (se prueba gemini-3.8-flash por defecto)
 //   ANTHROPIC_API_KEY  opcional; solo si no hay clave de Gemini
 //   APP_CODE           código de acceso que la app pide una vez (obligatorio)
@@ -19,6 +20,26 @@ function limited(ip){
   return list.length > MAX_PER_WINDOW;
 }
 
+
+// Plan B cuando no se puede ver el video: transcripción (Supadata, opcional) o la descripción del video.
+const textOf = c => typeof c === "string" ? c : Array.isArray(c) ? c.map(x => x.text).join(" ") : "";
+async function getTranscript(url, key, deadline){
+  if(!key) return "";
+  const H = { "x-api-key": key };
+  const r = await fetch("https://api.supadata.ai/v1/transcript?text=true&mode=auto&url=" + encodeURIComponent(url), { headers:H, signal: AbortSignal.timeout(20000) });
+  if(r.status === 202){
+    const { jobId } = await r.json().catch(() => ({}));
+    for(let i = 0; jobId && i < 25 && deadline - Date.now() > 45000; i++){
+      await new Promise(res => setTimeout(res, 2000));
+      const j = await (await fetch("https://api.supadata.ai/v1/transcript/" + encodeURIComponent(jobId), { headers:H, signal: AbortSignal.timeout(15000) })).json().catch(() => ({}));
+      if(j.status === "completed") return textOf(j.content);
+      if(j.status === "failed") return "";
+    }
+    return "";
+  }
+  if(r.status !== 200) return "";
+  return textOf((await r.json().catch(() => ({}))).content);
+}
 
 // Videos pesados: se suben al almacenamiento de Gemini y se usan por referencia.
 async function uploadToGemini(buf, key){
@@ -65,7 +86,7 @@ async function run(req, res, deadline){
     .filter(im => im && /^image\/(jpeg|png|webp|gif)$/.test(im.media_type) && typeof im.data === "string" && im.data.length <= MAX_IMAGE_B64);
 
   if(process.env.GEMINI_API_KEY){
-    let videoPart = null, videoTitle = "";
+    let videoPart = null, videoTitle = "", extraText = "", fallback = "";
     if(typeof body.videoUrl === "string" && body.videoUrl){
       let host = "";
       try{ const u = new URL(body.videoUrl); if(u.protocol === "https:") host = u.hostname.replace(/^www\./, "").replace(/^m\./, ""); }catch{}
@@ -89,12 +110,17 @@ async function run(req, res, deadline){
           }
         }else throw { code:"video_unavailable" };
       }catch(e){
-        if(e?.name === "TimeoutError" || e?.name === "AbortError") return res.status(504).json({ code:"timeout", message: where() });
-        const code = e?.code === "video_too_large" ? "video_too_large" : "video_unavailable";
-        return res.status(422).json({ code, message: code === "video_too_large" ? "El video es muy pesado." : "No se pudo abrir el video." });
+        const code = e?.name === "TimeoutError" || e?.name === "AbortError" ? "timeout" : e?.code === "video_too_large" ? "video_too_large" : "video_unavailable";
+        res.stage = "plan B";
+        let tr = ""; try{ tr = await getTranscript(body.videoUrl, process.env.SUPADATA_API_KEY, deadline); }catch{}
+        if(tr && tr.trim().length >= 40){ extraText = "Transcripción del audio del video:\n" + tr.trim().slice(0, 12000); fallback = "transcripcion"; }
+        else if(videoTitle && videoTitle.trim().length >= 15){ extraText = "Descripción publicada con el video: " + videoTitle.trim(); fallback = "descripcion"; }
+        else return res.status(code === "timeout" ? 504 : 422).json({ code, message: code === "timeout" ? where() : code === "video_too_large" ? "El video es muy pesado." : "No se pudo abrir el video." });
+        videoTitle = "";
+        extraText += "\n(Nota: el video NO se pudo ver; trabaja solo con este texto, estima las cantidades que falten y avísalo en la descripción.)";
       }
     }
-    res.stage = res.stage === "inicio" || !videoPart ? "analizar con Gemini" : res.stage;
+    res.stage = "analizar con Gemini";
     const models = [...new Set([process.env.GEMINI_MODEL, "gemini-3.8-flash", "gemini-3.6-flash", "gemini-3-flash-preview"].filter(Boolean))];
     const contents = messages.map((m, i) => {
       const parts = [{ text:String(m.content||"") }];
@@ -102,6 +128,7 @@ async function run(req, res, deadline){
         parts.unshift(...images.map(im => ({ inlineData:{ mimeType:im.media_type, data:im.data } })));
         if(videoPart) parts.unshift(videoPart);
         if(videoTitle) parts.push({ text:"Descripción del video en TikTok: " + videoTitle });
+        if(extraText) parts.push({ text: extraText });
       }
       return { role: m.role === "assistant" ? "model" : "user", parts };
     });
@@ -139,7 +166,7 @@ async function run(req, res, deadline){
       const cand = d.candidates?.[0];
       const text = (cand?.content?.parts || []).filter(p => p.text).map(p => p.text).join("");
       if(!text.trim()) return res.status(502).json({ code:"empty_completion", message:"La IA no respondió." });
-      return res.status(200).json({ text, truncated: cand?.finishReason === "MAX_TOKENS" });
+      return res.status(200).json({ text, truncated: cand?.finishReason === "MAX_TOKENS", fallback });
     }catch(e){
       if(e?.name === "TimeoutError" || e?.name === "AbortError") return res.status(504).json({ code:"timeout", message: where() });
       return res.status(502).json({ code:"upstream_error", message:"No se pudo contactar a la IA (" + (e?.name || "error") + ": " + String(e?.message || "").slice(0,80) + ")." });

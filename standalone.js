@@ -66,6 +66,7 @@
     if(r.status === 401){ setCode(""); if(!retried) return call(input, opts, json, true); throw { code:"not_granted", message:d.message }; }
     if(!r.ok) throw { code: d.code || "upstream_error", message: d.message || "" };
     try{ opts.onText?.({ text:d.text, delta:d.text }); }catch{}
+    try{ opts.onMeta?.({ fallback:d.fallback || "" }); }catch{}
     return json ? parseJSON(d.text) : { text:d.text, truncated:!!d.truncated, modelTierApplied:opts.modelTier || "default" };
   }
   const sample = (input, opts) => call(input, opts, false);

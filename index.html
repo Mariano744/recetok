@@ -960,24 +960,48 @@ EXAMPLE._light = {
 /* ---------- Pasos: texto, acción y minutos ---------- */
 const ACTIONS = ["hervir","freir","cortar","mezclar","hornear","licuar","reposar","servir"];
 const stepText = p => typeof p === "string" ? p : (p?.texto || "");
-function stepMinutes(p){
-  if(p && typeof p === "object" && p.minutos != null && isFinite(Number(p.minutos))) return Math.max(0, Math.min(240, Number(p.minutos)));
-  const m = stepText(p).match(/(\d+)(?:\s*[–-]\s*(\d+))?\s*(min|minutos|h|hora|horas)\b/i);
+const ACTION_STEMS = {
+  hornear:/\b(horne\w*|hornea\w*|gratin\w*|precalient\w*)/,
+  licuar:/\b(licu\w*|procesa\w*|tritur\w*|pulveriz\w*)/,
+  hervir:/\b(hierv\w*|herv\w*|sancoch\w*|cuece\w*|cuezo\w*|escald\w*|blanque\w*|cocin\w* (?:el|la|los|las) (?:arroz|pasta|fideos?|papas?|camote|choclo|frijoles|lentejas|garbanzos|huevos?|tallarines))/,
+  freir:/\b(fri[ae]\w*|frit\w*|dor[ae]\w*|sofri\w*|salte\w*|sell[ae]\w*|plancha\w*|asa\b|asar\w*|grill\w*|tuest\w*)/,
+  cortar:/\b(pic[ae]\w*|cort[ae]\w*|rebana\w*|troce\w*|pel[ae]\w*|ralla\w*|filete\w*|lava\w*|deshuesa\w*|desvena\w*|machaca\w*|exprim\w*)/,
+  mezclar:/\b(mezcl\w*|bat[ei]\w*|integr\w*|revuelv\w*|combin\w*|amas\w*|incorpor\w*|agreg\w*|anad\w*|sazon\w*|unta\w*|rellen\w*)/,
+  reposar:/\b(repos\w*|enfri\w*|refriger\w*|marin\w*|congel\w*|descans\w*|fermenta\w*|leuda\w*|deja\w* (?:reposar|enfriar|descansar|marinar|en la refri\w*))/,
+  servir:/\b(sirv\w*|emplat\w*|decor\w*|acompan\w*|disfrut\w*|espolvore\w*|adorn\w*)/
+};
+const TIMED_ACTIONS = ["hervir","freir","hornear","reposar"];
+function textMinutes(txt){
+  const m = String(txt||"").match(/(\d+)(?:\s*[–-]\s*(\d+))?\s*(min|minutos|h|hora|horas)\b/i);
   if(!m) return 0;
   const v = +(m[2]||m[1]);
   return /^h/i.test(m[3]) ? v*60 : v;
 }
+const clampMin = v => Math.max(0, Math.min(240, Number(v) || 0));
+/* La acción se asigna con el verbo del paso; la IA manda solo si el texto la respalda. */
 function stepAction(p){
-  if(p && typeof p === "object" && ACTIONS.includes(p.accion)) return p.accion;
   const t = norm(stepText(p));
-  if(/horn|gratin/.test(t)) return "hornear";
-  if(/licu|procesa|tritur/.test(t)) return "licuar";
-  if(/hierv|sancoch|cuece|cocina la pasta|cocina el arroz|agua/.test(t)) return "hervir";
-  if(/fri|dora|sofri|saltea|sella|sarten|plancha/.test(t)) return "freir";
-  if(/pica|corta|rebana|troza|pela|ralla|filete/.test(t)) return "cortar";
-  if(/repos|refriger|marin|enfria|deja/.test(t)) return "reposar";
-  if(/sirve|emplat|decora|acompan/.test(t)) return "servir";
-  return "mezclar";
+  const ai = p && typeof p === "object" && ACTIONS.includes(p.accion) ? p.accion : null;
+  const hits = ACTIONS.map(a => { const m = t.match(ACTION_STEMS[a]); return m ? [a, m.index] : null; }).filter(Boolean).sort((x,y) => x[1]-y[1]);
+  if(ai && (!hits.length || hits.some(h => h[0] === ai))) return ai;
+  if(hits.length) return hits[0][0];
+  if(/sarten|plancha|aceite caliente/.test(t)) return "freir";
+  if(/\bolla\b|agua|caldo/.test(t)) return "hervir";
+  if(/horno/.test(t)) return "hornear";
+  if(/licuadora|batidora/.test(t)) return "licuar";
+  if(/tabla|cuchillo/.test(t)) return "cortar";
+  if(/refri|nevera|reposo/.test(t)) return "reposar";
+  if(/plato|fuente|mesa/.test(t)) return "servir";
+  return ai || "mezclar";
+}
+/* Minutos: respeta el 0 de la IA en pasos rápidos, pero si el paso es de cocción/espera y el texto da un tiempo, se usa. */
+function stepMinutes(p){
+  const fromText = textMinutes(stepText(p));
+  if(p && typeof p === "object" && p.minutos != null && isFinite(Number(p.minutos))){
+    const v = clampMin(p.minutos);
+    return v === 0 && fromText && TIMED_ACTIONS.includes(stepAction(p)) ? clampMin(fromText) : v;
+  }
+  return clampMin(fromText);
 }
 
 /* ---------- Guardado: recetario y semana (nube con respaldo local) ---------- */
@@ -1509,7 +1533,7 @@ ${hasImg ? "Te adjunto captura(s) de pantalla del video; identifica el plato y l
 """${txt || "(sin texto, usa solo las imágenes)"}"""
 Objetivos del usuario: ${prefText()}. Orienta los cambios saludables a estos objetivos.
 
-Deduce la receta completa con cantidades realistas, con pasos separados por acción (un paso por cada hervir, freír, picar, mezclar, hornear, etc.). Estima la nutrición POR PORCIÓN y el costo en soles. Sugiere 3-4 cambios concretos para hacerla más saludable sin perder el sabor.
+Deduce la receta completa con cantidades realistas, con pasos separados por acción (un paso por cada hervir, freír, picar, mezclar, hornear, etc.). Cada paso empieza con un verbo en imperativo y tiene UNA sola acción principal (si el texto trae dos, sepáralos en dos pasos); "accion" debe corresponder a ese verbo (hervir=olla con agua; freir=sartén/plancha/dorar/sofreír; cortar=picar/pelar/rallar; mezclar=bol/unir/sazonar/agregar; hornear; licuar; reposar=enfriar/marinar/refrigerar; servir=emplatar/decorar) y "minutos" solo se llena en pasos de cocción o espera y debe coincidir con el tiempo que dice el texto. Estima la nutrición POR PORCIÓN y el costo en soles. Sugiere 3-4 cambios concretos para hacerla más saludable sin perder el sabor.
 Responde SOLO con un objeto JSON con esta forma exacta (todo en español):
 ${SCHEMA},
 "cambios_saludables":[{"en_vez_de":string,"usa":string,"por_que":string,"ahorro":string corto ej "−120 kcal"}],
@@ -1536,13 +1560,45 @@ const errMsg = e => (e?.code === "timeout" && ERR.timeout ? ERR.timeout + (e.mes
 const noAIMsg = "La IA no está disponible ahora.";
 const strip = r => { const {svg, _light, _refri, _src, _thumb, recorte_comida, ejemplo, folder, rating, notes, cooked, savedAt, updatedAt, lastCooked, id, ...rest} = r; return rest; };
 
-async function read(){
+/* ---------- Caché de links ya analizados ---------- */
+const CACHE_KEY = "recetok_cache";
+function linkId(url){
+  try{ const u = new URL(url), h = u.hostname.replace(/^(www|m)\./, "").toLowerCase(), v = /youtu/.test(h) ? (u.searchParams.get("v") || "") : "";
+    return h + u.pathname.replace(/\/+$/, "") + (v ? "?v=" + v : ""); }catch{ return String(url).toLowerCase(); }
+}
+const cacheGet = k => (lsGet(CACHE_KEY, {}) || {})[k] || null;
+function cachePut(k, r){
+  const c = lsGet(CACHE_KEY, {}) || {}; c[k] = { t:Date.now(), r };
+  const keys = Object.keys(c).sort((a,b) => c[a].t - c[b].t);
+  while(keys.length > 25) delete c[keys.shift()];
+  lsSet(CACHE_KEY, c);
+}
+
+/* ---------- Compartir desde otra app (TikTok, YouTube…) hacia Recetok ---------- */
+function shareIntake(){
+  const q = new URLSearchParams(location.search);
+  const title = (q.get("title") || "").trim(), text = (q.get("text") || "").trim(), url = (q.get("url") || "").trim();
+  if(!title && !text && !url) return;
+  const all = [text || title, url && !(text || title).includes(url) ? url : ""].filter(Boolean).join(" ").slice(0, 2000);
+  history.replaceState(null, "", location.pathname); route();
+  $("#txt").value = all; $("#txt").dispatchEvent(new Event("input"));
+  if(parseLinks(all).links.length) read(); else toast("Texto recibido. Toca Analizar receta.");
+}
+
+async function read(force){
   const raw = $("#txt").value.trim();
   if(!raw && !images.length){ $("#status").innerHTML = `<span class="err">Pega el link y el texto del video, o sube una captura.</span>`; return; }
   const { links, rest } = parseLinks(raw);
   const link = links[0];
   const hint = links.flatMap(l=>l.words).join(" ");
   const canWatch = !!window.RECETOK_APP && link && ["youtube","tiktok"].includes(link.platform.id) && !images.length;
+  const ck = link && !images.length ? linkId(link.url) + "|" + prefText() + "|" + (rest || "").slice(0, 80) : "";
+  const hit = ck && force !== true ? cacheGet(ck) : null;
+  if(hit){
+    const r = structuredClone(hit.r); r.id = uid(); load(r); saveHist(r);
+    $("#status").innerHTML = `Listo ✓ · receta guardada de antes, sin gastar IA. <button class="btn small" id="reRun">Volver a analizar</button>`;
+    $("#reRun").onclick = () => read(true); scrollToResult(); return;
+  }
   if(link && !canWatch && rest.length < 8 && !images.length && (link.platform.video || hint.split(" ").length < 2)){
     $("#status").innerHTML = `<div class="howto">${IC.link}<div><b>Reconocí un link de ${esc(link.platform.name)}, pero la IA no puede abrir videos.</b><br>${esc(link.platform.how)}</div></div>`;
     return;
@@ -1556,6 +1612,7 @@ async function read(){
     const opts = {};
     if(images.length) opts.images = images;
     if(canWatch) opts.videoUrl = link.url;
+    let fb = ""; opts.onMeta = m => { fb = m?.fallback || ""; };
     const r = await sample.json(PROMPT(txt, !!images.length, src, canWatch), opts);
     if(!r || r.error){ $("#status").innerHTML = `<span class="err">${esc(r?.error || "No encontré una receta ahí.")}</span>`; return; }
     r.id = uid();
@@ -1563,6 +1620,8 @@ async function read(){
     delete r.recorte_comida;
     if(link) r._src = { name: link.platform.name, url: link.url, guessed: !rest && !images.length && !canWatch };
     load(r); saveHist(r);
+    if(ck && !fb){ const { id, ...c } = r; cachePut(ck, c); }
+    if(fb){ $("#status").textContent = `Listo ✓ · No pude ver el video; usé ${fb === "transcripcion" ? "la transcripción" : "la descripción"}. Revisa las cantidades.`; scrollToResult(); return; }
     $("#status").textContent = r._src?.guessed ? "Listo ✓ · receta deducida solo del título del enlace; revisa las cantidades." : "Listo ✓";
     scrollToResult();
   }catch(e){
@@ -2549,6 +2608,7 @@ route();
     else { const lim = await sample.limits().catch(()=>null); if(!lim?.images) $("#fileBtn").hidden = true; }
   }catch{}
   try{ downloads = await window.claude?.use?.("downloads"); }catch{}
+  try{ shareIntake(); }catch{}
 })();
 </script>
 
