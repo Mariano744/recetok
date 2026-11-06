@@ -19,6 +19,28 @@ function limited(ip){
   return list.length > MAX_PER_WINDOW;
 }
 
+
+// Videos pesados: se suben al almacenamiento de Gemini y se usan por referencia.
+async function uploadToGemini(buf, key){
+  const base = "https://generativelanguage.googleapis.com";
+  const start = await fetch(base + "/upload/v1beta/files", { method:"POST", headers:{
+    "x-goog-api-key":key, "X-Goog-Upload-Protocol":"resumable", "X-Goog-Upload-Command":"start",
+    "X-Goog-Upload-Header-Content-Length":String(buf.length), "X-Goog-Upload-Header-Content-Type":"video/mp4",
+    "content-type":"application/json" }, body: JSON.stringify({ file:{ display_name:"recetok-video" } }) });
+  const url = start.headers.get("x-goog-upload-url");
+  if(!start.ok || !url) throw { code:"video_unavailable" };
+  const up = await fetch(url, { method:"POST", headers:{ "Content-Length":String(buf.length), "X-Goog-Upload-Offset":"0", "X-Goog-Upload-Command":"upload, finalize" }, body: buf });
+  let f = (await up.json().catch(() => ({}))).file;
+  if(!up.ok || !f?.uri) throw { code:"video_unavailable" };
+  for(let i = 0; i < 20 && f.state === "PROCESSING"; i++){
+    await new Promise(r => setTimeout(r, 1500));
+    const g = await fetch(base + "/v1beta/" + f.name, { headers:{ "x-goog-api-key":key } });
+    f = await g.json().catch(() => f);
+  }
+  if(f.state && f.state !== "ACTIVE") throw { code:"video_unavailable" };
+  return { fileData:{ mimeType:"video/mp4", fileUri:f.uri } };
+}
+
 module.exports = async function handler(req, res){
   res.setHeader("Cache-Control", "no-store");
   if(req.method !== "POST") return res.status(405).json({ code:"invalid_request", message:"Usa POST." });
@@ -56,8 +78,12 @@ module.exports = async function handler(req, res){
           const vr = await fetch(play.startsWith("http") ? play : "https://www.tikwm.com" + play);
           const buf = Buffer.from(await vr.arrayBuffer());
           if(!vr.ok || !buf.length) throw { code:"video_unavailable" };
-          if(buf.length > 18 * 1024 * 1024) throw { code:"video_too_large" };
-          videoPart = { inlineData:{ mimeType:"video/mp4", data: buf.toString("base64") } };
+          if(buf.length > 60 * 1024 * 1024) throw { code:"video_too_large" };
+          if(buf.length <= 12 * 1024 * 1024){
+            videoPart = { inlineData:{ mimeType:"video/mp4", data: buf.toString("base64") } };
+          }else{
+            videoPart = await uploadToGemini(buf, process.env.GEMINI_API_KEY);
+          }
         }else throw { code:"video_unavailable" };
       }catch(e){
         const code = e?.code === "video_too_large" ? "video_too_large" : "video_unavailable";
