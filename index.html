@@ -1103,8 +1103,18 @@ function fmtQty(v){
 }
 function scaleQty(str, f){
   if(f===1) return str;
-  const p = parseLead(str);
-  return p ? fmtQty(p.v*f) + p.rest : str;
+  const p = parseLead(str); if(!p) return str;
+  let v = p.v*f, rest = p.rest;
+  const rg = rest.match(/^(\s*(?:-|–|a)\s*)(\d+(?:[.,]\d+)?)(.*)$/);          // rangos: "2-3 dientes"
+  if(rg) rest = rg[1] + fmtQty(parseFloat(rg[2].replace(",", "."))*f) + scaleText(rg[3], f);
+  else rest = scaleText(rest, f);                                                 // medidas entre paréntesis: "(500 ml)"
+  if(/^\s*(huevos?|unidades?|dientes?|latas?|rodajas?|piezas?)\b/i.test(rest)) v = Math.max(1, Math.round(v));   // cosas enteras
+  if(v <= 1 && !rg) rest = rest.replace(/^(\s*)(tazas|latas|dientes|cdas|cdtas|unidades|atados|rodajas|piezas|huevos)\b/i, (m, sp, w) => sp + (w.toLowerCase()==="unidades" ? "unidad" : w.toLowerCase()==="dientes" ? "diente" : w.slice(0,-1)));
+  if(v > 1 && !rg) rest = rest.replace(/^(\s*)(taza|lata|diente|cda|cdta|unidad|atado|rodaja|pieza|huevo)\b/i, "$1$2s");
+  const kg = rest.match(/^(\s*)(g|gr|gramos?)\b(.*)$/i), l = rest.match(/^(\s*)(ml|mililitros?)\b(.*)$/i);
+  if(kg && v >= 1000) return fmtQty(v/1000) + kg[1] + "kg" + kg[3];
+  if(l && v >= 1000) return fmtQty(v/1000) + l[1] + "l" + l[3];
+  return fmtQty(v) + rest;
 }
 /* Escala las cantidades que aparecen escritas dentro de un paso (no toca tiempos ni temperaturas) */
 const STEP_QTY = /(\d+(?:[.,]\d+)?(?:\s*\/\s*\d+)?|[½¼¾⅓⅔])(\s*(?:g|gr|grs|gramos?|kg|kilos?|ml|l|lt|litros?|tazas?|cdas?|cucharadas?|cdtas?|cucharaditas?|dientes?|latas?|atados?|unidades?|unid|huevos?|piezas?|rodajas?|lonjas?|rebanadas?)\b)/gi;
