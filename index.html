@@ -224,6 +224,12 @@ button.light:focus-visible{outline:2px solid var(--peach);outline-offset:2px}
 .stepper span{padding:0 6px;color:var(--muted)}
 .stepper b{font-family:var(--f-num);font-weight:500;color:var(--ink)}
 ul.ing label{display:flex;gap:10px;align-items:center;cursor:pointer;min-width:0}
+.qty .eq{display:block;font-size:.76rem;color:var(--muted);opacity:.85}
+.mguide{margin:10px 0 0;border:1px dashed var(--line);border-radius:12px;padding:8px 12px;font-size:.9rem}
+.mguide summary{cursor:pointer;color:var(--sage);font-weight:600}
+.mguide ul{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}
+.mguide li{display:flex;justify-content:space-between;gap:12px}
+.mguide li span{color:var(--muted);text-align:right}
 ul.ing input{accent-color:var(--sage);width:16px;height:16px;flex:none}
 ul.ing label:has(input:checked) span{text-decoration:line-through;color:var(--muted)}
 ul.ing .qty{font-family:var(--f-num);font-size:.85rem;color:var(--muted);text-align:right;white-space:nowrap}
@@ -1124,6 +1130,26 @@ function scaleText(txt, f){
 }
 const stepFac = r => S.servings / (Number(r?.porciones) || 4);
 const stepShown = (r, p) => scaleText(stepText(p), stepFac(r));
+/* Equivalencias para entender las medidas caseras */
+const NUMRE = "(\\d+(?:[.,]\\d+)?|[½¼¾⅓⅔]|\\d+\\/\\d+)";
+const GENERIC_EQ = [[new RegExp("^"+NUMRE+"\\s*(tazas?)\\b","i"), 240, "ml"], [new RegExp("^"+NUMRE+"\\s*(cdas?|cucharadas?)\\b","i"), 15, "ml"], [new RegExp("^"+NUMRE+"\\s*(cdtas?|cucharaditas?)\\b","i"), 5, "ml"]];
+const ITEM_G = [[/huevo/, 50], [/ajo/, 5], [/cebolla/, 150], [/tomate/, 120], [/papa|patata/, 150], [/zanahoria/, 80], [/limon/, 60], [/palta|aguacate/, 200], [/platano|banana/, 120], [/aji/, 30], [/pimiento/, 150]];
+function eqText(i, fac){
+  const casera = i.cantidad, exacta = i.exacta;
+  if(S.units === "exacta") return casera && exacta && norm(casera) !== norm(exacta) ? "≈ " + scaleQty(casera, fac) : "";
+  if(exacta && norm(casera) !== norm(exacta) && /\d\s*(g|gr|kg|ml|l|lt)\b/i.test(exacta)) return "≈ " + scaleQty(exacta, fac);
+  const c = String(casera || "").trim();
+  for(const [re, k, u] of GENERIC_EQ){ if(re.test(c)){ const p = parseLead(c); if(p) return "≈ " + fmtUnit(p.v*fac*k, u); } }
+  const p = parseLead(c), nm = norm(i.item), w = p ? (norm(p.rest).split(" ")[0] || "") : "";
+  if(p && (w === "" || /^(unidad|unidades|u|unid|diente|dientes)$/.test(w))){
+    for(const [re, g] of ITEM_G) if(re.test(nm)) return "≈ " + fmtUnit(p.v*fac*g, "g");
+  }
+  return "";
+}
+const MEASURE_GUIDE = [
+  ["1 taza","≈ 240 ml · un vaso grande"],["1 cda (cucharada)","≈ 15 ml · cuchara de sopa"],["1 cdta (cucharadita)","≈ 5 ml · cuchara de postre"],
+  ["1 huevo","≈ 50 g · un huevo mediano"],["1 diente de ajo","≈ 5 g · una pepita, no la cabeza entera"],["1 puñado","≈ 30 g · lo que cabe en una mano"],
+  ["1 pizca","lo que agarras con dos dedos"],["1 chorrito","≈ 1 cda · un hilo corto"],["al gusto","pon poco, prueba y agrega si falta"]];
 const UNIT = [[/^(kg|kilos?|kilogramos?)$/,"g",1000],[/^(g|gr|grs|gramos?)$/,"g",1],[/^(l|lt|litros?)$/,"ml",1000],[/^(ml|mililitros?)$/,"ml",1],
   [/^tazas?$/,"taza",1],[/^(cdas?|cucharadas?)$/,"cda",1],[/^(cdtas?|cucharaditas?)$/,"cdta",1],[/^dientes?$/,"diente",1],[/^(latas?)$/,"lata",1],[/^(atados?)$/,"atado",1],[/^(u|unid|unidad|unidades)$/,"u",1]];
 function splitQty(str){
@@ -1289,10 +1315,12 @@ function render(){
       const qtxt = S.units==="exacta" && i.exacta ? i.exacta : i.cantidad;
       return `<li data-ix="${ix}">
         <label><input type="checkbox"><span>${esc(i.item)}${(i.alergenos||[]).map(a=>`<em class="al" title="Alérgeno">${esc(a)}</em>`).join("")}</span></label>
-        <span class="qty">${esc(scaleQty(qtxt, fac))}</span>
+        <span class="qty">${esc(scaleQty(qtxt, fac)).replace(/^([\d½¼¾⅓⅔\/ ]+)$/, "$1 unid.")}${(() => { const e = eqText(i, fac); return e ? `<small class="eq">${esc(e)}</small>` : ""; })()}</span>
         <button class="subbtn" data-ix="${ix}" aria-label="Sustituir ${esc(i.item)}" title="Sustituir">${IC.swap}</button>
         <div class="subpop" hidden></div>
       </li>`;}).join("")}</ul>
+    <details class="mguide"><summary>¿Cuánto es una taza, una cda, un huevo…?</summary>
+      <ul>${MEASURE_GUIDE.map(([a,b])=>`<li><b>${a}</b><span>${b}</span></li>`).join("")}</ul></details>
     <div class="ingfoot">
       ${priceTotal ? `<span class="cost">${IC.coin} Costo aprox. <b>${soles(priceTotal*fac)}</b> para ${S.servings} porciones</span>` : ""}
       <button class="btn small" id="copyList">${IC.copy} Copiar lista</button>
