@@ -1106,6 +1106,14 @@ function scaleQty(str, f){
   const p = parseLead(str);
   return p ? fmtQty(p.v*f) + p.rest : str;
 }
+/* Escala las cantidades que aparecen escritas dentro de un paso (no toca tiempos ni temperaturas) */
+const STEP_QTY = /(\d+(?:[.,]\d+)?(?:\s*\/\s*\d+)?|[½¼¾⅓⅔])(\s*(?:g|gr|grs|gramos?|kg|kilos?|ml|l|lt|litros?|tazas?|cdas?|cucharadas?|cdtas?|cucharaditas?|dientes?|latas?|atados?|unidades?|unid|huevos?|piezas?|rodajas?|lonjas?|rebanadas?)\b)/gi;
+function scaleText(txt, f){
+  if(!f || f === 1 || !txt) return txt;
+  return txt.replace(STEP_QTY, (m, n, u) => { const out = scaleQty(n + u, f); return out === n + u ? m : out; });
+}
+const stepFac = r => S.servings / (Number(r?.porciones) || 4);
+const stepShown = (r, p) => scaleText(stepText(p), stepFac(r));
 const UNIT = [[/^(kg|kilos?|kilogramos?)$/,"g",1000],[/^(g|gr|grs|gramos?)$/,"g",1],[/^(l|lt|litros?)$/,"ml",1000],[/^(ml|mililitros?)$/,"ml",1],
   [/^tazas?$/,"taza",1],[/^(cdas?|cucharadas?)$/,"cda",1],[/^(cdtas?|cucharaditas?)$/,"cdta",1],[/^dientes?$/,"diente",1],[/^(latas?)$/,"lata",1],[/^(atados?)$/,"atado",1],[/^(u|unid|unidad|unidades)$/,"u",1]];
 function splitQty(str){
@@ -1286,7 +1294,7 @@ function render(){
       <div class="sh"><span class="eyebrow">Preparación</span><h3>Pasos</h3></div>
       <button class="btn small dark" id="cookBtn">${IC.play} Modo cocina</button>
     </div>
-    <ol class="steps">${(r.pasos||[]).map(p=>{ const m = stepMinutes(p); return `<li tabindex="0"><span>${esc(stepText(p))}${m?`<span class="mins">${m} min</span>`:""}</span></li>`; }).join("")}</ol>
+    <ol class="steps">${(r.pasos||[]).map(p=>{ const m = stepMinutes(p); return `<li tabindex="0"><span>${esc(stepShown(r, p))}${m?`<span class="mins">${m} min</span>`:""}</span></li>`; }).join("")}</ol>
   </section>
   </div>
 
@@ -1358,8 +1366,13 @@ function bindRecipe(){
     else if(m==="saludable") makeLight();
   });
   $("#makeLight")?.addEventListener("click", () => O._light ? (S.mode="saludable", render()) : makeLight());
-  $("#sMinus").onclick = () => { if(S.servings>1){ S.servings--; render(); } };
-  $("#sPlus").onclick = () => { if(S.servings<30){ S.servings++; render(); } };
+  const keepRender = () => {
+    const y = window.scrollY, on = $$("#result .ing input:checked").map(c => c.closest("li")?.dataset.ix);
+    render(); $$("#result .ing li").forEach(li => { if(on.includes(li.dataset.ix)) { const c = li.querySelector("input"); if(c) c.checked = true; } });
+    window.scrollTo(0, y);
+  };
+  $("#sMinus").onclick = () => { if(S.servings>1){ S.servings--; keepRender(); } };
+  $("#sPlus").onclick = () => { if(S.servings<30){ S.servings++; keepRender(); } };
   $$(".unitseg button").forEach(b => b.onclick = () => { S.units = b.dataset.u; lsSet("recetok_units", S.units); render(); });
   $$(".subbtn").forEach(b => b.onclick = () => substitute(+b.dataset.ix, b));
   $("#copyList").onclick = () => copyText(listText(cur(), S.servings), $("#copyList"), IC.copy+" Copiar lista");
@@ -2205,7 +2218,7 @@ const Game = {
     this.act = stepAction(p); this.mins = stepMinutes(p); this.foods = stepFoods(this.r, p);
     this.taps = 0; this.need = this.act==="servir" ? 3 : 6;
     $("#gCount").textContent = `Paso ${this.i+1} de ${this.r.pasos.length} · ${ACTNAME[this.act]}`;
-    $("#gText").textContent = stepText(p);
+    $("#gText").textContent = stepShown(this.r, p);
     $("#gIng").innerHTML = stepIngs(this.r, p).map(i=>`<span>${esc(i.item.split(/[,(]/)[0].trim())} <b>${esc(i.exacta||i.cantidad||"")}</b></span>`).join("");
     this.speak();
     $("#gPrev").disabled = this.i===0;
@@ -2216,7 +2229,7 @@ const Game = {
   voice:false,
   speak(){
     try{ speechSynthesis.cancel(); if(!this.voice) return;
-      const u = new SpeechSynthesisUtterance(`Paso ${this.i+1}. ${stepText(this.step)}`); u.lang = "es-PE"; u.rate = .95; speechSynthesis.speak(u);
+      const u = new SpeechSynthesisUtterance(`Paso ${this.i+1}. ${stepShown(this.r, this.step)}`); u.lang = "es-PE"; u.rate = .95; speechSynthesis.speak(u);
     }catch{}
   },
   extend(t){ t.total += 60; t.doneAt = 0; this.tickTimers(); this.drawBurners(); this.drawAction(); },
