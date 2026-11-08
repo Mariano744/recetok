@@ -224,6 +224,14 @@ button.light:focus-visible{outline:2px solid var(--peach);outline-offset:2px}
 .stepper span{padding:0 6px;color:var(--muted)}
 .stepper b{font-family:var(--f-num);font-weight:500;color:var(--ink)}
 ul.ing label{display:flex;gap:10px;align-items:center;cursor:pointer;min-width:0}
+.rescue .subh{margin:18px 0 8px;font-size:1rem}.fixes details{border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:8px 0;background:var(--surface)}
+.fixes summary{cursor:pointer;font-weight:600}.fixes p{margin:8px 0 0}
+.tricks{margin:0;padding-left:20px;display:grid;gap:6px}
+.diag textarea{width:100%;margin:10px 0;border:1px solid var(--line);border-radius:12px;padding:10px;font:inherit;background:var(--surface);color:inherit}
+.diagrow{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:8px}.diagrow .thumbs img{height:64px;border-radius:10px}
+.diagres{margin-top:14px;border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:var(--surface)}
+.diagres h5{margin:12px 0 4px}.diagres ul{margin:0;padding-left:20px;display:grid;gap:4px}
+.verdict{margin:0;padding:10px 12px;border-radius:10px}.verdict.good{background:#e4f1e4}.verdict.warn{background:#fff3d6}.verdict.bad{background:#fbe0dc}
 .qty .eq{display:block;font-size:.76rem;color:var(--muted);opacity:.85}
 .mguide{margin:10px 0 0;border:1px dashed var(--line);border-radius:12px;padding:8px 12px;font-size:.9rem}
 .mguide summary{cursor:pointer;color:var(--sage);font-weight:600}
@@ -1363,6 +1371,25 @@ function render(){
   </section>
   </div>
 
+  <section class="block rescue">
+    <div class="sh"><span class="eyebrow">¿Algo salió mal?</span><h3>Soluciones y trucos</h3></div>
+    ${(r.si_sale_mal||[]).length ? `<div class="fixes">${r.si_sale_mal.map(f=>`<details><summary>${esc(f.problema)}</summary><p><b>Por qué pasa:</b> ${esc(f.causa)}</p><p><b>Cómo arreglarlo:</b> ${esc(f.solucion)}</p></details>`).join("")}</div>`
+      : `<button class="btn" id="fixGen" ${S.busy.fix?"disabled":""}>${S.busy.fix?'<span class="dot"></span> Pensando…':"Generar soluciones y trucos para esta receta"}</button>`}
+    ${(r.trucos||[]).length ? `<h4 class="subh">Lo que el video no dice</h4><ul class="tricks">${r.trucos.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>` : ""}
+    <h4 class="subh">📷 ¿Cómo te quedó? Que la IA lo revise</h4>
+    <div class="diag">
+      <p class="muted small">Toma una foto de tu plato (o de la masa, la salsa, la carne…) y dime qué notas. Te digo qué pudo fallar, si se puede salvar y qué hacer.</p>
+      <div class="diagrow">
+        <label class="btn small" for="diagFile">${IC.camera || "📷"} Tomar o subir foto</label>
+        <input type="file" id="diagFile" accept="image/*" capture="environment" hidden>
+        <div class="thumbs" id="diagThumb"></div>
+      </div>
+      <textarea id="diagTxt" rows="2" placeholder="Opcional: ¿qué notas? (ej: está duro, sale agua, se quemó abajo, está crudo adentro)"></textarea>
+      <button class="btn primary" id="diagGo">Analizar mi plato</button>
+      <div id="diagOut"></div>
+    </div>
+  </section>
+
   <section class="block asksec">
     <div class="sh"><span class="eyebrow">Asistente</span><h3>Pregúntale a la receta</h3></div>
     <div class="ask">
@@ -1424,6 +1451,10 @@ function bindRecipe(){
   $("#cookedBtn")?.addEventListener("click", () => markCooked());
   $("#fridgeFile").onchange = e => { fridgeImg = e.target.files[0] || null; $("#fridgeThumb").innerHTML = fridgeImg ? `<img src="${URL.createObjectURL(fridgeImg)}" alt="Foto de tu refri">` : ""; };
   $("#fridgeGo").onclick = fromFridge;
+  $("#fixGen")?.addEventListener("click", genFixes);
+  $("#diagFile").onchange = e => { DIAGF = e.target.files[0] || null; $("#diagThumb").innerHTML = DIAGF ? `<img src="${URL.createObjectURL(DIAGF)}" alt="Tu plato">` : ""; };
+  $("#diagGo").onclick = diagnose;
+  if(DIAG[O.id]) drawDiag(DIAG[O.id]);
   $("#askForm").onsubmit = e => { e.preventDefault(); ask($("#askIn").value); };
   $$(".sug").forEach(b => b.onclick = () => { $("#askIn").value = b.textContent; ask(b.textContent); });
 }
@@ -1591,6 +1622,8 @@ $("#txt").addEventListener("input", drawLinkChips);
 const SCHEMA = `{"nombre":string,"descripcion":string (1 frase),"porciones":number,"tiempo_min":number,"dificultad":"Fácil"|"Media"|"Difícil",
 "ingredientes":[{"item":string,"cantidad":string en medidas caseras que empiece con número (ej "1 taza", "2 cdas", "3 dientes") o "al gusto","exacta":string en gramos o ml que empiece con número (ej "240 ml", "150 g") o "al gusto","alergenos":[de esta lista: "gluten","lácteos","huevo","maní","frutos secos","mariscos","pescado","soya","sésamo"],"precio_s":number costo aproximado en soles (Perú, mercado/supermercado) de esa cantidad}],
 "pasos":[{"texto":string,"accion":"hervir"|"freir"|"cortar"|"mezclar"|"hornear"|"licuar"|"reposar"|"servir","minutos":number (tiempo de espera/cocción del paso, 0 si es una acción rápida)}],
+"si_sale_mal":[{"problema":string corto (ej "queda seco", "se corta la salsa", "queda crudo por dentro"),"causa":string 1 frase,"solucion":string — cómo arreglarlo YA y cómo evitarlo la próxima vez}] (3 a 4 problemas típicos de ESTE plato, concretos, no genéricos),
+"trucos":[string — 3 consejos de cocinero que el video/receta normalmente NO dice: punto exacto, textura, sazón, errores comunes, reemplazos, cómo conservarlo],
 "nutricion_por_porcion":{"calorias":number,"proteinas_g":number,"carbohidratos_g":number,"azucares_g":number,"grasas_g":number,"grasas_saturadas_g":number,"fibra_g":number,"sodio_mg":number},
 "alergenos":[string],"precio_estimado_soles":{"total":number,"por_porcion":number},
 "puntuacion_saludable":number 1-10,"nota_salud":string (1 frase)`;
@@ -1625,7 +1658,7 @@ const ERR = {
 };
 const errMsg = e => (e?.code === "timeout" && ERR.timeout ? ERR.timeout + (e.message ? " (" + e.message + ")" : "") : ERR[e?.code]) || ("Algo falló con la conexión. Intenta de nuevo." + (e?.message ? " (" + e.message + ")" : ""));
 const noAIMsg = "La IA no está disponible ahora.";
-const strip = r => { const {svg, _light, _refri, _src, _thumb, recorte_comida, ejemplo, folder, rating, notes, cooked, savedAt, updatedAt, lastCooked, id, ...rest} = r; return rest; };
+const strip = r => { const {_diag, svg, _light, _refri, _src, _thumb, recorte_comida, ejemplo, folder, rating, notes, cooked, savedAt, updatedAt, lastCooked, id, ...rest} = r; return rest; };
 
 /* ---------- Caché de links ya analizados ---------- */
 const CACHE_KEY = "recetok_cache";
@@ -1748,6 +1781,45 @@ Crea la VERSIÓN SALUDABLE de esta misma receta aplicando los cambios sugeridos 
 Responde SOLO con un objeto JSON:
 ${SCHEMA},
 "cambios_aplicados":[{"en_vez_de":string,"usa":string,"por_que":string,"ahorro":string corto}]}`);
+}
+/* ---------- Soluciones, trucos y revisión de tu plato con foto ---------- */
+let DIAGF = null; const DIAG = {};
+async function genFixes(){
+  if(!sample){ toast(noAIMsg); return; }
+  const O = S.orig; S.busy.fix = true; render();
+  try{
+    const res = await sample.json(`Eres cocinero experto. Receta (JSON): ${JSON.stringify(strip(cur()))}
+Responde SOLO JSON: {"si_sale_mal":[{"problema":string corto,"causa":string 1 frase,"solucion":string — cómo arreglarlo YA y cómo evitarlo la próxima vez}] (3 a 4 problemas típicos de ESTE plato, concretos),"trucos":[string — 3 consejos que los videos normalmente NO dicen: punto, textura, sazón, errores comunes, reemplazos, conservación]}`, { modelTier:"quick" });
+    if(!Array.isArray(res?.si_sale_mal)) throw {code:"invalid_json"};
+    const r = cur(); r.si_sale_mal = res.si_sale_mal.slice(0,5); r.trucos = (res.trucos||[]).slice(0,4);
+    if(savedFor(O)) Store.saveRecipe(O);
+  }catch(e){ toast(errMsg(e)); }
+  finally{ S.busy.fix = false; if(S.orig === O) render(); }
+}
+function drawDiag(d){
+  const box = $("#diagOut"); if(!box) return;
+  const ok = {si:["good","Se puede comer"], con_cuidado:["warn","Con cuidado"], no:["bad","No lo comas"]}[d.se_puede_comer] || ["warn","Revisa"];
+  const li = a => (a||[]).map(x=>`<li>${esc(x)}</li>`).join("");
+  box.innerHTML = `<div class="diagres"><p class="verdict ${ok[0]}"><b>${ok[1]}.</b> ${esc(d.veredicto||"")}</p>
+    ${(d.que_fallo||[]).length ? `<h5>Qué pudo fallar</h5><ul>${d.que_fallo.map(f=>`<li><b>${esc(f.problema)}</b> — ${esc(f.causa)}</li>`).join("")}</ul>` : ""}
+    ${(d.arreglo_ahora||[]).length ? `<h5>Qué hacer ahora</h5><ul>${li(d.arreglo_ahora)}</ul>` : ""}
+    ${(d.para_la_proxima||[]).length ? `<h5>Para la próxima vez</h5><ul>${li(d.para_la_proxima)}</ul>` : ""}
+    <p class="muted small">Es una ayuda por foto: no huele ni prueba. Ante la duda con carnes, pescado, huevo o comida con olor raro, bótala.</p></div>`;
+}
+async function diagnose(){
+  if(!sample){ toast(noAIMsg); return; }
+  const txt = $("#diagTxt").value.trim();
+  if(!DIAGF && !txt){ toast("Sube una foto o cuéntame qué notas."); return; }
+  const O = S.orig, r = cur(), btn = $("#diagGo"); btn.disabled = true; btn.innerHTML = `<span class="dot"></span> Revisando tu plato…`;
+  try{
+    const res = await sample.json(`Eres un cocinero experto y práctico (público de Perú/Latinoamérica). El usuario preparó esta receta (JSON): ${JSON.stringify(strip(r))}
+${DIAGF ? "Te adjunto la FOTO de cómo le quedó." : "No hay foto, solo su descripción."} Lo que el usuario nota: ${txt || "(nada, juzga por la foto)"}.
+Compara con lo que se espera de este plato y di si algo falló (crudo, seco, quemado, cortado, muy salado, sin punto, masa que no subió, etc.) y por qué. Sé concreto y honesto: si se ve bien, dilo. SEGURIDAD: si hay carne de pollo/cerdo/pescado/huevo que parece cruda o comida con moho, mal olor descrito o muy dudosa, "se_puede_comer" es "no" y explica por qué.
+Responde SOLO JSON: {"veredicto":string 1-2 frases,"se_puede_comer":"si"|"con_cuidado"|"no","que_fallo":[{"problema":string,"causa":string}],"arreglo_ahora":[string pasos concretos para salvar este plato AHORA, vacío si no hace falta],"para_la_proxima":[string]}`, DIAGF ? { images:[DIAGF] } : {});
+    if(!res?.veredicto) throw {code:"invalid_json"};
+    DIAG[O.id] = res; drawDiag(res);
+  }catch(e){ toast(errMsg(e)); }
+  finally{ btn.disabled = false; btn.textContent = "Analizar mi plato"; }
 }
 function fromFridge(){
   const have = $("#fridgeIn").value.trim();
