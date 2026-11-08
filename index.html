@@ -738,6 +738,15 @@ ol.steps li .mins{display:inline-block;margin-left:8px;font:500 .72rem var(--f-n
 @media (max-width:560px){ .g-hud{flex-wrap:wrap;row-gap:10px} .ticket{order:0;flex:1 1 calc(100% - 60px);max-width:none} .g-x{order:1;width:44px} .g-score,.g-hud .g-prac{order:2} .g-score{margin-left:0;min-height:44px} .g-score small{display:none} .g-hud .g-prac{flex:1;padding:8px 10px} .g-btn{min-height:44px} }
 @media (max-height:640px) and (max-width:899px){ .g-stage{min-height:140px} .g-big{min-height:58px} }
 @media (prefers-reduced-motion:reduce){ .pw,.burner.ready,.g-nav .go.pulse,.end-stars span.on{animation:none} .pw{opacity:0} }
+/* Fotos realistas del plato */
+.pic.photo,.rpic{background:linear-gradient(110deg,var(--brand-soft) 35%,var(--surface) 50%,var(--brand-soft) 65%) 0 0/250% 100%;animation:fshim 1.8s linear infinite}
+.pic.photo:has(img.foto:not(.broken)),.rpic:has(img){animation-duration:2.4s}
+.pic img.foto,.rpic img.foto{object-fit:cover;padding:0;filter:none}
+img.foto.broken{visibility:hidden}
+.pic.photo:has(img.broken),.rpic:has(img.broken){animation:none;background:var(--brand-soft)}
+.pitem img.foto{object-fit:cover;padding:0}
+@keyframes fshim{to{background-position:-250% 0}}
+@media (prefers-reduced-motion:reduce){.pic.photo,.rpic{animation:none}}
 </style>
 </head>
 <body>
@@ -924,7 +933,7 @@ const IC = {
 /* ---------- Datos de ejemplo ---------- */
 const EXAMPLE = {
   id:"ejemplo", ejemplo:true,
-  nombre:"Pasta cremosa de pollo y ajo",
+  nombre:"Pasta cremosa de pollo y ajo", foto_en:"creamy garlic chicken penne pasta with golden seared chicken slices, parmesan and fresh parsley",
   descripcion:"La clásica de redes: pollo dorado, salsa de crema con parmesano y mucho ajo.",
   porciones:4, tiempo_min:30, dificultad:"Fácil",
   ingredientes:[
@@ -953,7 +962,6 @@ const EXAMPLE = {
     {en_vez_de:"Mantequilla",usa:"1 cda de aceite de oliva",por_que:"Grasa insaturada en lugar de saturada.",ahorro:"−5 g sat."},
     {en_vez_de:"Solo pasta y pollo",usa:"Agrega espinaca o brócoli",por_que:"Volumen, fibra y micronutrientes sin muchas calorías.",ahorro:"+verduras"}],
   version_ligera:{nombre:"Pasta integral con pollo en salsa de yogur y espinaca",calorias:540},
-  svg:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><ellipse cx="100" cy="112" rx="88" ry="70" fill="#f4f1ec"/><ellipse cx="100" cy="108" rx="72" ry="56" fill="#fff"/><ellipse cx="100" cy="106" rx="56" ry="42" fill="#f3dfa8"/><g fill="none" stroke="#e8c779" stroke-width="7" stroke-linecap="round"><path d="M62 98c16-14 30 10 46-4s28 6 36 0"/><path d="M58 114c18-12 34 8 50-6s26 8 38 2"/><path d="M70 128c14-8 28 6 42-4s20 4 28 0"/></g><g fill="#d39a5c"><rect x="74" y="86" width="22" height="11" rx="5" transform="rotate(-12 85 91)"/><rect x="108" y="96" width="24" height="11" rx="5" transform="rotate(10 120 101)"/><rect x="86" y="116" width="22" height="10" rx="5" transform="rotate(-4 97 121)"/></g><g fill="#6f9a5a"><circle cx="70" cy="110" r="3"/><circle cx="126" cy="88" r="3"/><circle cx="118" cy="124" r="3"/><circle cx="96" cy="100" r="2.5"/></g></svg>`
 };
 EXAMPLE._light = {
   nombre:"Pasta integral con pollo en salsa de yogur y espinaca",
@@ -1195,7 +1203,10 @@ function svgUrl(svg){
 }
 const svgCache = new Map();
 function svgFor(r){ if(!r?.svg) return null; if(!svgCache.has(r.svg)) svgCache.set(r.svg, svgUrl(r.svg)); return svgCache.get(r.svg); }
-const picOf = r => r?._thumb || svgFor(r) || null;
+const seedOf = t => { let h = 7; for(const c of String(t)) h = (h*31 + c.charCodeAt(0)) >>> 0; return h % 100000; };
+function fotoOf(r){ return r?.nombre ? "/api/foto?q=" + encodeURIComponent(clip(r.foto_en || r.nombre, 220)) + "&s=" + seedOf(r.nombre) : null; }  // foto realista del plato
+const picOf = r => r?._thumb || fotoOf(r);
+document.addEventListener("error", e => { const t = e.target; if(t?.tagName === "IMG" && /\/api\/foto/.test(t.src)) t.classList.add("broken"); }, true);
 function pct(k,v){ return DV[k] ? Math.round(v/DV[k]*100)+"%" : ""; }
 const soles = v => "S/ " + (Number(v)||0).toFixed(2);
 const stars = (n, max=5) => "★".repeat(Math.round(n||0)) + "☆".repeat(max-Math.round(n||0));
@@ -1217,9 +1228,9 @@ function render(){
   const score = Math.max(1, Math.min(10, Number(r.puntuacion_saludable)||5));
   const scoreColor = score>=7 ? "var(--good)" : score>=5 ? "var(--warn)" : "var(--bad)";
   const pK = num("proteinas_g")*4, cK = num("carbohidratos_g")*4, fK = num("grasas_g")*9, tot = (pK+cK+fK)||1;
-  const src = picOf(O) || picOf(r);
-  const pic = src ? `<img src="${src}" alt="${esc(r.nombre)}" class="${O._thumb?'':'svgimg'}">` : `<span class="noimg">${IC.book}</span>`;
-  const tag = O.ejemplo ? 'Ejemplo' : O._gen ? 'Creada por IA' : O._thumb ? 'Del video' : 'Ilustración · sube una captura para ver el plato';
+  const src = O._thumb || picOf(r);
+  const pic = src ? `<img src="${src}" alt="${esc(r.nombre)}" class="foto">` : `<span class="noimg">${IC.book}</span>`;
+  const tag = O.ejemplo ? 'Ejemplo' : O._thumb ? 'Del video' : 'Foto de referencia';
   const row = (lab,k,unit,indent) => `<div class="nl-row${indent?' indent':''}"><span>${lab} <span class="v">${num(k)} ${unit}</span></span><span class="pct">${pct(k,num(k))}</span></div>`;
   const variant = S.mode!=="original" && O[VARIANTS[S.mode]];
   const swaps = variant ? (r.cambios_aplicados||[]) : (r.cambios_saludables||[]);
@@ -1237,7 +1248,7 @@ function render(){
 
   $("#result").innerHTML = `
   <article class="hero">
-    <div class="pic${O._thumb?' photo':''}">${pic}<span class="tag">${tag}</span>${variant?`<span class="tag leaf">${S.mode==="refri"?"Con lo que tienes":"Versión saludable"}</span>`:''}</div>
+    <div class="pic photo">${pic}<span class="tag">${tag}</span>${variant?`<span class="tag leaf">${S.mode==="refri"?"Con lo que tienes":"Versión saludable"}</span>`:''}</div>
     <div class="hero-body">
       <div class="seg" role="tablist" aria-label="Versión de la receta">
         ${segBtn("original", O._gen ? "Sin restricciones" : "Original")}${segBtn("saludable", IC.spark+" Saludable")}${segBtn("refri", IC.fridge+" Con mi refri")}
@@ -1630,7 +1641,7 @@ function drawLinkChips(){
 $("#txt").addEventListener("input", drawLinkChips);
 
 /* ---------- IA ---------- */
-const SCHEMA = `{"nombre":string,"descripcion":string (1 frase),"porciones":number,"tiempo_min":number,"dificultad":"Fácil"|"Media"|"Difícil",
+const SCHEMA = `{"nombre":string,"foto_en":string — descripción corta EN INGLÉS del plato terminado para una foto profesional (ingredientes visibles, cómo se sirve, ej "creamy garlic chicken penne with parmesan and parsley"),"descripcion":string (1 frase),"porciones":number,"tiempo_min":number,"dificultad":"Fácil"|"Media"|"Difícil",
 "ingredientes":[{"item":string,"cantidad":string en medidas caseras que empiece con número (ej "1 taza", "2 cdas", "3 dientes") o "al gusto","exacta":string en gramos o ml que empiece con número (ej "240 ml", "150 g") o "al gusto","alergenos":[de esta lista: "gluten","lácteos","huevo","maní","frutos secos","mariscos","pescado","soya","sésamo"],"precio_s":number costo aproximado en soles (Perú, mercado/supermercado) de esa cantidad}],
 "pasos":[{"texto":string,"accion":"hervir"|"freir"|"cortar"|"mezclar"|"hornear"|"licuar"|"reposar"|"servir","minutos":number (tiempo de espera/cocción del paso, 0 si es una acción rápida)}],
 "si_sale_mal":[{"problema":string corto (ej "queda seco", "se corta la salsa", "queda crudo por dentro"),"causa":string 1 frase,"solucion":string — cómo arreglarlo YA y cómo evitarlo la próxima vez}] (3 a 4 problemas típicos de ESTE plato, concretos, no genéricos),
@@ -1648,8 +1659,7 @@ Deduce la receta completa con cantidades realistas, con pasos separados por acci
 Responde SOLO con un objeto JSON con esta forma exacta (todo en español):
 ${SCHEMA},
 "cambios_saludables":[{"en_vez_de":string,"usa":string,"por_que":string,"ahorro":string corto ej "−120 kcal"}],
-"version_ligera":{"nombre":string,"calorias":number},
-${hasImg ? '"recorte_comida":{"img":número de la imagen (0 = la primera) donde mejor se ve el plato terminado,"x":0-1,"y":0-1,"w":0-1,"h":0-1} — caja (fracciones del ancho/alto) que encuadre SOLO la comida, sin personas, manos, texto ni botones de la app; ajustada al plato con un poco de margen,\n' : ''}"svg":string — ilustración plana del plato visto desde arriba, SVG completo con viewBox="0 0 200 200", formas simples, colores suaves y realistas para los ingredientes, sin texto ni scripts, menos de 2500 caracteres}
+"version_ligera":{"nombre":string,"calorias":number}${hasImg ? ',\n"recorte_comida":{"img":número de la imagen (0 = la primera) donde mejor se ve el plato terminado,"x":0-1,"y":0-1,"w":0-1,"h":0-1} — caja (fracciones del ancho/alto) que encuadre SOLO la comida, sin personas, manos, texto ni botones de la app; ajustada al plato con un poco de margen' : ''}}
 Si el texto no describe ninguna comida, devuelve {"error":"explica brevemente qué falta"}.`;
 
 const ERR = {
@@ -2173,7 +2183,7 @@ function drawBook(){
     const pic = picOf(r);
     const al = [...new Set([...(r.alergenos||[]), ...(r.ingredientes||[]).flatMap(i=>i.alergenos||[])])];
     return `<article class="rcard" data-id="${esc(r.id)}">
-      <button class="rpic" data-open="${esc(r.id)}" aria-label="Abrir ${esc(r.nombre)}">${pic?`<img src="${pic}" alt="" class="${r._thumb?'':'svgimg'}">`:IC.book}</button>
+      <button class="rpic" data-open="${esc(r.id)}" aria-label="Abrir ${esc(r.nombre)}">${pic?`<img src="${pic}" alt="" class="foto" loading="lazy">`:IC.book}</button>
       <div class="rbody">
         <div class="rtop"><span class="pill">${IC.folder} ${esc(r.folder||"Sin carpeta")}</span>${r.rating?`<span class="rstars" aria-label="${r.rating} de 5">${stars(r.rating)}</span>`:""}</div>
         <h3><button class="linkish" data-open="${esc(r.id)}">${esc(r.nombre)}</button></h3>
@@ -2224,7 +2234,7 @@ function drawWeek(){
   const plan = Store.meta.plan, recs = Store.recipes;
   const all = [...recs.values()].sort((a,b)=>norm(a.nombre).localeCompare(norm(b.nombre)));
   $("#pantry").innerHTML = `<div class="sh"><span class="eyebrow">Arrastra a un día</span><h3>Tus recetas</h3></div>` +
-    (all.length ? `<div class="plist">${all.map(r=>`<div class="pitem" draggable="true" data-id="${esc(r.id)}">${picOf(r)?`<img src="${picOf(r)}" alt="" class="${r._thumb?'':'svgimg'}">`:""}<span>${esc(r.nombre)}</span></div>`).join("")}</div>`
+    (all.length ? `<div class="plist">${all.map(r=>`<div class="pitem" draggable="true" data-id="${esc(r.id)}">${picOf(r)?`<img src="${picOf(r)}" alt="" class="foto" loading="lazy">`:""}<span>${esc(r.nombre)}</span></div>`).join("")}</div>`
       : `<p class="muted small">Guarda recetas en tu recetario para planificar la semana.</p><a class="btn small" href="#">Analizar una receta</a>`);
   let weekK = 0, weekCost = 0, n = 0, daysWith = 0;
   $("#days").innerHTML = DAYS.map(([k,l]) => {
@@ -2516,7 +2526,7 @@ const Game = {
   },
   finish(){
     const k = this.starCount(), saved = savedFor(S.orig);
-    let pic = S.orig._thumb || null;
+    let pic = picOf(S.orig) || null;
     if(!pic){ try{ // foto del plato emplatado en la cocina
       const cv = document.createElement("canvas"); cv.width = 800; cv.height = 600;
       const last = this.r.pasos.length-1, snap = Object.assign(Object.create(this), {act:"servir", i:last, res:{...this.res, [last]:{pts:0}}, parts:[], shake:0, pulse:0, cw:800, ch:600, foods:stepFoods(this.r, this.r.pasos[last])});
@@ -3107,7 +3117,7 @@ const Share = {
     x.save(); rr(x, 60, 60, 960, 640, 40); x.clip();
     x.fillStyle = "#dceadf"; x.fillRect(60,60,960,640);
     if(src){ try{ const img = await loadImg(src);
-      const isPhoto = !!O._thumb, iw = img.naturalWidth||img.width, ih = img.naturalHeight||img.height;
+      const isPhoto = true, iw = img.naturalWidth||img.width, ih = img.naturalHeight||img.height;
       if(isPhoto){ const s = Math.max(960/iw, 640/ih); x.drawImage(img, 60+(960-iw*s)/2, 60+(640-ih*s)/2, iw*s, ih*s); }
       else { x.drawImage(img, 290, 110, 500, 500); }
     }catch{} }
