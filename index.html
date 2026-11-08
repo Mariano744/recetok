@@ -781,6 +781,12 @@ ol.steps li .mins{display:inline-block;margin-left:8px;font:500 .72rem var(--f-n
         <p class="hint" id="hint">Con una captura del plato terminado se recorta la foto de la comida. Los videos de YouTube y TikTok se analizan solos; en Instagram, Facebook y otras redes acompaña el link con el texto o una captura.</p>
         <div class="status" id="status" aria-live="polite"></div>
         <div class="history" id="history"></div>
+        <div class="copycat" id="genBox">
+          <div class="sh"><span class="eyebrow">Crea tu receta</span><h3>Pide lo que se te antoje</h3></div>
+          <form class="ccform" id="genForm"><input type="text" id="genIn" maxlength="200" placeholder="Ej. algo con pollo y arroz en 30 min para 3, que sea picante" aria-label="Describe la receta que quieres"><button class="btn primary" id="genGo">Crear receta</button></form>
+          <div class="ccchips" id="genChips"></div>
+          <p class="muted small">Te arma dos versiones: una sin restricciones, con todo el sabor, y otra saludable según tu objetivo. Cambias entre ellas arriba de la receta.</p>
+        </div>
         <div class="copycat" id="copycat">
           <div class="sh"><span class="eyebrow">Copia casera</span><h3>Recetas de restaurantes famosos</h3></div>
           <form class="ccform" id="ccForm"><input type="text" id="ccIn" maxlength="90" placeholder="Restaurante y plato… ej. Chick-fil-A sándwich de pollo" aria-label="Restaurante y plato a copiar"><button class="btn primary" id="ccGo">Copiar receta</button></form>
@@ -1213,7 +1219,7 @@ function render(){
   const pK = num("proteinas_g")*4, cK = num("carbohidratos_g")*4, fK = num("grasas_g")*9, tot = (pK+cK+fK)||1;
   const src = picOf(O) || picOf(r);
   const pic = src ? `<img src="${src}" alt="${esc(r.nombre)}" class="${O._thumb?'':'svgimg'}">` : `<span class="noimg">${IC.book}</span>`;
-  const tag = O.ejemplo ? 'Ejemplo' : O._thumb ? 'Del video' : 'Ilustración · sube una captura para ver el plato';
+  const tag = O.ejemplo ? 'Ejemplo' : O._gen ? 'Creada por IA' : O._thumb ? 'Del video' : 'Ilustración · sube una captura para ver el plato';
   const row = (lab,k,unit,indent) => `<div class="nl-row${indent?' indent':''}"><span>${lab} <span class="v">${num(k)} ${unit}</span></span><span class="pct">${pct(k,num(k))}</span></div>`;
   const variant = S.mode!=="original" && O[VARIANTS[S.mode]];
   const swaps = variant ? (r.cambios_aplicados||[]) : (r.cambios_saludables||[]);
@@ -1234,7 +1240,7 @@ function render(){
     <div class="pic${O._thumb?' photo':''}">${pic}<span class="tag">${tag}</span>${variant?`<span class="tag leaf">${S.mode==="refri"?"Con lo que tienes":"Versión saludable"}</span>`:''}</div>
     <div class="hero-body">
       <div class="seg" role="tablist" aria-label="Versión de la receta">
-        ${segBtn("original","Original")}${segBtn("saludable", IC.spark+" Saludable")}${segBtn("refri", IC.fridge+" Con mi refri")}
+        ${segBtn("original", O._gen ? "Sin restricciones" : "Original")}${segBtn("saludable", IC.spark+" Saludable")}${segBtn("refri", IC.fridge+" Con mi refri")}
       </div>
       <h2>${esc(r.nombre)}</h2>
       <p class="desc">${esc(r.descripcion)}</p>
@@ -1415,7 +1421,7 @@ function compareHTML(a, b){
   const A = a.nutricion_por_porcion||{}, B = b.nutricion_por_porcion||{};
   const rows = [["Calorías","calorias","",-1],["Proteínas","proteinas_g","g",1],["Grasas sat.","grasas_saturadas_g","g",-1],["Azúcares","azucares_g","g",-1],["Fibra","fibra_g","g",1],["Sodio","sodio_mg","mg",-1]];
   return `<section class="compare" aria-label="Comparación con la receta original">
-    <div class="cmp-head"><span class="label">Original → ${S.mode==="refri"?"Con lo que tienes":"Saludable"}, por porción</span>
+    <div class="cmp-head"><span class="label">${a._gen ? "Sin restricciones" : "Original"} → ${S.mode==="refri"?"Con lo que tienes":"Saludable"}, por porción</span>
       <span class="cmp-score">Puntaje <b>${esc(a.puntuacion_saludable)}</b> → <b class="up">${esc(b.puntuacion_saludable)}</b></span></div>
     <div class="cmp-grid">${rows.map(([lab,k,u,better])=>{
       const x = Number(A[k])||0, y = Number(B[k])||0, d = y-x;
@@ -1663,7 +1669,7 @@ const ERR = {
 };
 const errMsg = e => (e?.code === "timeout" && ERR.timeout ? ERR.timeout + (e.message ? " (" + e.message + ")" : "") : ERR[e?.code]) || ("Algo falló con la conexión. Intenta de nuevo." + (e?.message ? " (" + e.message + ")" : ""));
 const noAIMsg = "La IA no está disponible ahora.";
-const strip = r => { const {_diag, svg, _light, _refri, _src, _thumb, recorte_comida, ejemplo, folder, rating, notes, cooked, savedAt, updatedAt, lastCooked, id, ...rest} = r; return rest; };
+const strip = r => { const {_diag, _gen, svg, _light, _refri, _src, _thumb, recorte_comida, ejemplo, folder, rating, notes, cooked, savedAt, updatedAt, lastCooked, id, ...rest} = r; return rest; };
 
 /* ---------- Caché de links ya analizados ---------- */
 const CACHE_KEY = "recetok_cache";
@@ -1765,7 +1771,7 @@ async function read(force){
   }finally{ if(JOB === me){ go.disabled = false; done(); JOB = null; } }
 }
 
-async function variantCall(mode, prompt, opts={}){
+async function variantCall(mode, prompt, opts={}, stay=false){
   if(!sample){ toast(noAIMsg); return; }
   if(S.busy[mode]) return;
   const O = S.orig; S.busy[mode] = true; render();
@@ -1773,19 +1779,19 @@ async function variantCall(mode, prompt, opts={}){
     const r = await sample.json(prompt, opts);
     if(!r?.nombre) throw {code:"invalid_json"};
     O[VARIANTS[mode]] = r;
-    if(S.orig === O) S.mode = mode;
+    if(S.orig === O && !stay) S.mode = mode;
     if(savedFor(O)) Store.saveRecipe(O);
   }catch(e){ toast(errMsg(e)); }
   finally{ S.busy[mode] = false; if(S.orig === O) render(); }
 }
-function makeLight(){
-  variantCall("saludable", `Eres nutricionista y cocinero. Esta es una receta (JSON):
+function makeLight(stay){
+  return variantCall("saludable", `Eres nutricionista y cocinero. Esta es una receta (JSON):
 ${JSON.stringify(strip(S.orig))}
 Objetivos del usuario: ${prefText()}.
 Crea la VERSIÓN SALUDABLE de esta misma receta aplicando los cambios sugeridos (y otros si ayudan a los objetivos), manteniendo el sabor, el espíritu del plato y las mismas porciones. Recalcula nutrición por porción y costo con honestidad.
 Responde SOLO con un objeto JSON:
 ${SCHEMA},
-"cambios_aplicados":[{"en_vez_de":string,"usa":string,"por_que":string,"ahorro":string corto}]}`);
+"cambios_aplicados":[{"en_vez_de":string,"usa":string,"por_que":string,"ahorro":string corto}]}`, {}, stay);
 }
 /* ---------- Soluciones, trucos y revisión de tu plato con foto ---------- */
 let DIAGF = null; const DIAG = {};
@@ -2067,6 +2073,35 @@ $("#evList").addEventListener("click", ev => {
   const card = b.closest(".evcard"); if(card) evAction(card, b.dataset.act, b);
 });
 
+
+/* ---------- Crea tu receta: la IA arma una receta a pedido (sin restricciones + saludable) ---------- */
+const GEN_IDEAS = ["Algo con pollo en 30 minutos","Postre fácil sin horno","Cena para 2 con lo básico","Loncheras para la semana","Algo criollo y picante","Desayuno alto en proteína","Pasta cremosa","Snack para ver el partido"];
+function drawGenChips(){
+  $("#genChips").innerHTML = GEN_IDEAS.map((t,i) => `<button type="button" class="chip" data-i="${i}">${esc(t)}</button>`).join("");
+}
+async function genRecipe(q){
+  q = clip(q, 200); if(!q){ $("#genIn").focus(); return; }
+  if(!sample){ $("#status").innerHTML = `<span class="err">${noAIMsg}</span>`; return; }
+  const btns = $$("#genChips .chip, #genGo"); btns.forEach(b => b.disabled = true);
+  $("#status").innerHTML = `<span class="dot"></span> Creando tu receta…`;
+  const txt = `No hay video: el usuario te PIDE que inventes una receta a su medida. Su pedido: "${q}".
+Respeta todo lo que pida (ingredientes, tiempo, porciones, presupuesto, sabor, equipo de cocina). Si no dice porciones, usa 2.
+Esta es la versión SIN RESTRICCIONES: prioriza el sabor y la textura al máximo, como la haría un buen cocinero de casa, sin recortar grasa, azúcar ni sal por salud (pero con cantidades realistas, nada exagerado ni peligroso). La versión saludable se hará aparte, así que aquí NO la suavices.
+"descripcion" en 1 frase atractiva. Si el pedido no es comida o es peligroso, devuelve {"error":"..."}.`;
+  try{
+    const r = await sample.json(PROMPT(txt, false, "", false), {});
+    if(!r || r.error || !r.nombre){ $("#status").innerHTML = `<span class="err">${esc(r?.error || "No pude armar esa receta. Prueba describiéndola de otra forma.")}</span>`; return; }
+    r.id = uid(); r._gen = q; load(r); saveHist(r);
+    $("#status").innerHTML = `<span class="dot"></span> Lista la versión sin restricciones · preparando la saludable…`; scrollToResult();
+    const O = r;
+    await makeLight(true);
+    if(S.orig === O) $("#status").textContent = O._light ? "Listo ✓ · tienes las dos versiones: Sin restricciones y Saludable" : "Listo ✓ · toca Saludable para crear esa versión";
+  }catch(e){ $("#status").innerHTML = `<span class="err">${errMsg(e)}</span>`; }
+  finally{ btns.forEach(b => b.disabled = false); }
+}
+$("#genChips").addEventListener("click", e => { const b = e.target.closest("[data-i]"); if(b){ $("#genIn").value = GEN_IDEAS[+b.dataset.i]; genRecipe(GEN_IDEAS[+b.dataset.i]); } });
+$("#genForm").addEventListener("submit", e => { e.preventDefault(); genRecipe($("#genIn").value); });
+drawGenChips();
 
 /* ---------- Copia casera de restaurantes famosos ---------- */
 const COPY_LIST = [["Raising Cane's","Chicken fingers con Cane's Sauce"],["Raising Cane's","Cane's Sauce"],["Raising Cane's","Texas toast"],["McDonald's","Big Mac"],["McDonald's","McNuggets con salsa agridulce"],["Wendy's","Chili"],["Burger King","Whopper"],["KFC","Pollo frito original"],
