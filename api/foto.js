@@ -3,12 +3,16 @@
 // 2) Si falla y existe PEXELS_API_KEY (gratis en pexels.com/api), busca una foto real parecida.
 // La respuesta se guarda en la CDN de Vercel, así el mismo plato no se vuelve a generar.
 
-const STYLE = "professional food photography, served on a matte ceramic plate on a rustic wooden table, " +
-  "45 degree angle, soft natural window light, shallow depth of field, photorealistic, ultra detailed, " +
-  "appetizing, editorial magazine style, 4k, 8k detail, sharp focus, no text, no watermark, no people, no hands";
+// t=plato (por defecto): el plato servido · t=paso: cómo se ve la olla/sartén/bol en ese paso · t=ing: un ingrediente medido
+const BASE = "soft natural window light, photorealistic, ultra detailed, sharp focus, 4k, no text, no watermark, no people, no hands";
+const STYLES = {
+  plato: "professional food photography, served on a matte ceramic plate on a rustic wooden table, 45 degree angle, shallow depth of field, appetizing, editorial magazine style, " + BASE,
+  paso: "realistic home cooking photo taken from above while cooking, inside the cookware on a home kitchen stove or counter, natural colors and textures, steam if hot, " + BASE,
+  ing: "raw ingredient measured in a small white ceramic prep bowl, mise en place, top-down view on a light wooden kitchen counter, clean, " + BASE
+};
 
-async function pollinations(q, seed, deadline){
-  const prompt = encodeURIComponent((q + ", " + STYLE).slice(0, 700));
+async function pollinations(q, seed, deadline, style){
+  const prompt = encodeURIComponent((q + ", " + style).slice(0, 700));
   const url = "https://image.pollinations.ai/prompt/" + prompt + "?width=3840&height=2880&nologo=true&private=true&model=flux&seed=" + seed;
   for(let i = 0; i < 2; i++){
     const left = deadline - Date.now(); if(left < 8000) return null;
@@ -51,8 +55,9 @@ module.exports = async function handler(req, res){
   const seed = Math.abs(parseInt(req.query?.s, 10) || 7) % 1000000;
   if(req.method !== "GET" || q.length < 3) return res.status(400).end();
   try{
-    let img = await pollinations(q, seed, deadline);
-    if(!img && process.env.PEXELS_API_KEY) img = await pexels(q, process.env.PEXELS_API_KEY);
+    const style = STYLES[req.query?.t] || STYLES.plato;
+    let img = await pollinations(q, seed, deadline, style);
+    if(!img && process.env.PEXELS_API_KEY && !req.query?.t) img = await pexels(q, process.env.PEXELS_API_KEY);
     if(!img){ res.setHeader("Cache-Control", "no-store"); return res.status(404).end(); }
     if(req.query?.info) return res.status(200).json({ bytes: img.buf.length, ...dims(img.buf) });
     if(img.buf.length > 4.3 * 1024 * 1024 && img.url){            // Vercel no envía respuestas de más de 4.5 MB: se redirige a la imagen

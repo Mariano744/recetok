@@ -730,7 +730,46 @@ ol.steps li .mins{display:inline-block;margin-left:8px;font:500 .72rem var(--f-n
 .ck-nav #gList{flex:0 0 56px}.ck-nav #gList[aria-pressed="true"]{background:var(--brand-soft);border-color:var(--brand);color:var(--brand)}
 .ck-nav .go{flex:2;background:var(--brand);border-color:var(--brand);color:var(--on-brand)}
 .ck-nav button[disabled]{opacity:.4}
-@media (prefers-reduced-motion:reduce){.tmr.alarm{animation:none}}
+/* Escena realista del paso: la foto de cómo debe verse, vapor, y los ingredientes que caen */
+.ck-stage{position:relative;aspect-ratio:4/3;border-radius:20px;overflow:hidden;margin:0 0 16px;background:linear-gradient(110deg,var(--brand-soft) 35%,var(--surface) 50%,var(--brand-soft) 65%) 0 0/250% 100%;animation:fshim 1.8s linear infinite;box-shadow:var(--shadow)}
+.ck-stage:has(.ck-scene:not(.wait)){animation:none;background:#1d1a17}
+.ck-scene{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:kenburns 18s ease-in-out infinite alternate;transform-origin:50% 55%}
+.act-mezclar .ck-scene,.act-licuar .ck-scene{animation:stir 6s ease-in-out infinite alternate}
+.ck-scene.wait{opacity:0}.ck-scene:not(.wait){animation-play-state:running;transition:opacity .6s;opacity:1}
+@keyframes kenburns{from{transform:scale(1.02)}to{transform:scale(1.12) translate(-1.5%,-1%)}}
+@keyframes stir{from{transform:scale(1.08) rotate(-1.6deg)}to{transform:scale(1.1) rotate(1.6deg)}}
+.ck-stage.splash .ck-scene{animation:splash .45s ease-out}
+@keyframes splash{40%{transform:scale(1.07) translateY(4px)}100%{transform:scale(1.04)}}
+.ck-steam{position:absolute;inset:0;pointer-events:none}
+.ck-steam i{position:absolute;bottom:-20%;width:42%;height:70%;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.38),rgba(255,255,255,0));filter:blur(14px);animation:steam 5.5s ease-in infinite;opacity:0}
+.ck-steam i:nth-child(1){left:8%}.ck-steam i:nth-child(2){left:32%;animation-delay:1.8s}.ck-steam i:nth-child(3){left:56%;animation-delay:3.6s}
+@keyframes steam{0%{transform:translateY(0) scale(.7);opacity:0}25%{opacity:.85}100%{transform:translateY(-75%) scale(1.25);opacity:0}}
+.ck-stlab,.ck-cnt{position:absolute;font:600 .74rem var(--f-body);padding:5px 10px;border-radius:999px;background:rgba(20,18,16,.62);color:#fff;backdrop-filter:blur(6px)}
+.ck-stlab{left:10px;top:10px}.ck-cnt{right:10px;bottom:10px;font-family:var(--f-num)}
+.ck-pop{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);font:700 1.25rem var(--f-display);color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.6);opacity:0;pointer-events:none;white-space:nowrap}
+.ck-pop.show{animation:popin 1.3s ease-out}
+@keyframes popin{0%{opacity:0;transform:translate(-50%,-30%) scale(.8)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-90%)}}
+.ck-tray{margin-bottom:14px}
+.ck-tcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;margin-top:8px}
+.ck-ingc{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:6px 6px 9px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);text-align:left;cursor:pointer;font:500 .84rem/1.25 var(--f-body);transition:transform .15s,border-color .2s,opacity .2s}
+.ck-ingc:active{transform:scale(.96)}
+.ck-ingc b{font:600 .84rem var(--f-num);color:var(--brand);margin-top:4px;padding:0 3px}.ck-ingc>span{padding:0 3px}.ck-ingc small{color:var(--muted);font:500 .72rem var(--f-num);padding:0 3px}
+.ck-ingp{position:relative;display:block;width:100%;aspect-ratio:1;border-radius:10px;overflow:hidden;background:linear-gradient(110deg,var(--brand-soft) 35%,var(--surface) 50%,var(--brand-soft) 65%) 0 0/250% 100%;animation:fshim 1.8s linear infinite}
+.ck-ingp:has(img:not(.wait)){animation:none}
+.ck-ingp img{width:100%;height:100%;object-fit:cover;display:block}.ck-ingp img.wait{opacity:0}
+.ck-ingok{position:absolute;inset:0;display:grid;place-items:center;background:rgba(47,107,79,.72);color:#fff;opacity:0;transition:opacity .2s}
+.ck-ingok svg{width:34px;height:34px;stroke-width:2.6}
+.ck-ingc.in{border-color:var(--brand)}.ck-ingc.in .ck-ingok{opacity:1}.ck-ingc.in>span,.ck-ingc.in b{opacity:.6}
+.ck-fly{position:fixed;z-index:80;border-radius:10px;overflow:hidden;pointer-events:none;box-shadow:0 10px 24px rgba(0,0,0,.3)}
+.ck-fly img{width:100%;height:100%;object-fit:cover}.ck-fly .ck-ingok{display:none}
+.ck-ithumb{width:44px;height:44px;border-radius:10px;overflow:hidden;flex:none;background:var(--brand-soft)}
+.ck-ithumb img{width:100%;height:100%;object-fit:cover;display:block}.ck-ithumb img.wait{opacity:0}
+.ck-film{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.ck-film figure{margin:0;position:relative;flex:0 0 92px;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--brand-soft)}
+.ck-film img{width:100%;height:100%;object-fit:cover}.ck-film img.wait{opacity:0}
+.ck-film figcaption{position:absolute;left:5px;top:5px;font:600 .7rem var(--f-num);background:rgba(20,18,16,.6);color:#fff;border-radius:6px;padding:1px 6px}
+@media (min-width:760px){.ck-body{max-width:900px}.ck-step{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);column-gap:22px;align-items:start}.ck-step>.ck-meta,.ck-step>.ck-stage{grid-column:1}.ck-step>*{grid-column:2}.ck-step>.ck-stage{grid-row:2 / span 6;position:sticky;top:0}.ck-step>.ck-meta{grid-column:1 / -1}}
+@media (prefers-reduced-motion:reduce){.tmr.alarm,.ck-scene,.ck-steam i,.ck-stage.splash .ck-scene{animation:none}}
 /* Fotos realistas del plato */
 .pic.photo,.rpic{background:linear-gradient(110deg,var(--brand-soft) 35%,var(--surface) 50%,var(--brand-soft) 65%) 0 0/250% 100%;animation:fshim 1.8s linear infinite}
 .pic.photo:has(img.foto:not(.broken)),.rpic:has(img){animation-duration:2.4s}
@@ -2320,6 +2359,28 @@ function beep(n=1){
 }
 const qtyOf = (s, f) => s && /^\s*[\d½¼¾⅓⅔]/.test(s) ? scaleQty(s, f) : (s || "");
 const TMR_KEY = "recetok_timers";
+const UT_EN = {hervir:"inside a cooking pot", freir:"inside a frying pan", hornear:"in a baking dish", licuar:"inside a blender jar", cortar:"on a wooden cutting board", mezclar:"inside a large mixing bowl", reposar:"in a glass container", servir:"plated on a ceramic plate"};
+const UT_ES = {hervir:"la olla", freir:"la sartén", hornear:"la fuente", licuar:"la licuadora", cortar:"la tabla", mezclar:"el bol", reposar:"el recipiente", servir:"el plato"};
+/* Fotos realistas de cada ingrediente y de cómo se ve cada paso. Se piden de una en una (el servicio gratis limita) y por orden de prioridad. */
+const PIC = { done:new Set(), bad:new Set(), q:[], busy:false,
+  url(desc, t, seed){ return "/api/foto?q=" + encodeURIComponent(clip(desc, 220)) + "&s=" + seed + "&t=" + t; },
+  want(urls, front){
+    const list = urls.filter(u => u && !this.done.has(u) && !this.bad.has(u));
+    this.q = this.q.filter(u => !list.includes(u));
+    this.q = front ? list.concat(this.q) : this.q.concat(list);
+    this.pump();
+  },
+  pump(){
+    if(this.busy || !this.q.length) return;
+    const u = this.q.shift(); this.busy = true;
+    const im = new Image(), fin = ok => { this.busy = false;
+      (ok ? this.done : this.bad).add(u);
+      document.querySelectorAll("img[data-src]").forEach(e => { if(e.dataset.src !== u) return; if(ok){ e.src = u; e.classList.remove("wait"); } else e.classList.add("broken"); e.removeAttribute("data-src"); });
+      this.pump(); };
+    im.onload = () => fin(true); im.onerror = () => fin(false); im.src = u;
+  },
+  tag(u, cls="", alt=""){ return this.done.has(u) ? `<img src="${u}" class="${cls}" alt="${esc(alt)}">` : `<img data-src="${u}" class="${cls} wait${this.bad.has(u)?" broken":""}" alt="${esc(alt)}">`; }
+};
 
 const Cook = {
   r:null, i:-1, timers:[], have:new Set(), adj:{}, tick:0, lock:null, voice:false, hands:false, rec:null, loading:false, askCtl:null, listOpen:false,
@@ -2327,7 +2388,7 @@ const Cook = {
   get guide(){ const g = this.r._guia; return g && Array.isArray(g.pasos) && g.pasos.length === this.n ? g : null; },
   open(r){
     if(!(r.pasos||[]).length){ toast("Esta receta no tiene pasos."); return; }
-    this.r = r; this.i = -1; this.have = new Set(); this.adj = {}; this.listOpen = false;
+    this.r = r; this.i = -1; this.have = new Set(); this.added = new Set(); this.adj = {}; this.listOpen = false;
     const saved = lsGet(TMR_KEY, null);
     this.timers = saved && saved.rid === S.orig.id ? saved.timers.filter(t => !t.ack && Date.now() - t.end < 3600e3) : [];
     $("#gName").textContent = r.nombre;
@@ -2350,23 +2411,34 @@ const Cook = {
 
   /* Consejos de cocinero para cada paso (una sola consulta a la IA, se guarda con la receta) */
   async loadGuide(){
-    if(this.guide || this.loading || !sample) return;
+    if(this.guide || this.loading || !sample){ this.queuePics(); return; }
     const r = this.r; this.loading = true;
     try{
       const g = await sample.json(`Eres un cocinero profesional que acompaña a alguien MIENTRAS cocina en su casa (Perú/Latinoamérica). Le hablas de tú, claro y corto.
 Receta (JSON): ${JSON.stringify(strip(r))}
 Va a preparar ${S.servings} porciones.
 Para CADA uno de los ${r.pasos.length} pasos, en el mismo orden, da ayuda concreta para ESTE plato (nada genérico como "con cuidado").
-Responde SOLO JSON: {"antes":[string — 2 a 4 cosas para dejar listas antes de empezar: qué picar y medir, precalentar el horno a cuántos °C, sacar algo de la refri, etc.],
-"pasos":[{"listo_cuando":string — la señal concreta de que el paso está bien (color, textura, olor, sonido o prueba; ej "la cebolla está transparente y huele dulce"),"fuego":"bajo"|"medio"|"medio-alto"|"alto"|"" (vacío si el paso no usa fuego),"ojo":string — el error típico en este paso y cómo evitarlo, máximo 1 frase,"mientras":string — qué adelantar mientras esperas, solo si el paso tiene espera; si no, ""}]} (exactamente ${r.pasos.length} elementos en "pasos")`, { modelTier:"quick" });
-      if(g && Array.isArray(g.pasos) && g.pasos.length === r.pasos.length){ r._guia = { antes:(g.antes||[]).slice(0,5), pasos:g.pasos }; this.persist(); }
+Responde SOLO JSON: {"ingredientes_en":[string — para CADA ingrediente de la receta, en el mismo orden (exactamente ${(r.ingredientes||[]).length}), descripción corta EN INGLÉS de cómo se ve ya preparado para usar, ej "finely minced garlic cloves", "grated parmesan cheese"],
+"antes":[string — 2 a 4 cosas para dejar listas antes de empezar: qué picar y medir, precalentar el horno a cuántos °C, sacar algo de la refri, etc.],
+"pasos":[{"listo_cuando":string — la señal concreta de que el paso está bien (color, textura, olor, sonido o prueba; ej "la cebolla está transparente y huele dulce"),"fuego":"bajo"|"medio"|"medio-alto"|"alto"|"" (vacío si el paso no usa fuego),"ojo":string — el error típico en este paso y cómo evitarlo, máximo 1 frase,"mientras":string — qué adelantar mientras esperas, solo si el paso tiene espera; si no, "","escena_en":string — EN INGLÉS, cómo se ve lo que hay dentro de la olla/sartén/bol/tabla al TERMINAR este paso, visto desde arriba: ingredientes, colores, textura, burbujas o vapor (ej "golden seared chicken strips sizzling in olive oil inside a frying pan")}]} (exactamente ${r.pasos.length} elementos en "pasos")`, { modelTier:"quick" });
+      if(g && Array.isArray(g.pasos) && g.pasos.length === r.pasos.length){ r._guia = { antes:(g.antes||[]).slice(0,5), pasos:g.pasos, ing_en:Array.isArray(g.ingredientes_en) && g.ingredientes_en.length === (r.ingredientes||[]).length ? g.ingredientes_en : null }; this.persist(); }
     }catch{}
     this.loading = false;
+    if(this.r === r) this.queuePics();
     if(this.r === r && !$("#game").hidden) this.draw();
   },
 
+  ingUrl(k){ const x = this.r.ingredientes[k], d = this.guide?.ing_en?.[k] || x.item.split(/[(]/)[0]; return PIC.url(d, "ing", seedOf(x.item) % 9973); },
+  sceneUrl(i){ const p = this.r.pasos[i], g = this.guide?.pasos[i], act = stepAction(p);
+    return PIC.url(g?.escena_en ? g.escena_en + ", " + (UT_EN[act]||"") : stepText(p) + " — " + (UT_EN[act]||""), act === "servir" ? "plato" : "paso", (seedOf(this.r.nombre) + i*101) % 99991); },
+  queuePics(){
+    if(!this.r || this.loading) return;
+    const n = this.n, cur = Math.max(0, Math.min(n-1, this.i));
+    PIC.want([this.sceneUrl(cur), ...(this.r.ingredientes||[]).map((_,k) => this.ingUrl(k)), ...this.r.pasos.map((_,k) => this.sceneUrl(k))]);
+  },
   go(i){
     this.i = Math.max(-1, Math.min(this.n, i));
+    if(this.r && !this.loading && this.i >= 0 && this.i < this.n) PIC.want([this.sceneUrl(this.i), ...stepIngs(this.r, this.r.pasos[this.i]).map(x => this.ingUrl(this.r.ingredientes.indexOf(x))), this.i+1 < this.n ? this.sceneUrl(this.i+1) : ""], true);
     this.listOpen = false; this.ans = ""; this.askOpen = false; this.draw(); this.speak();
     $("#gBody").scrollTop = 0;
   },
@@ -2402,7 +2474,7 @@ Responde SOLO JSON: {"antes":[string — 2 a 4 cosas para dejar listas antes de 
         <div class="ck-cardh"><h3>Ingredientes</h3><small>${got}/${all} listos</small></div>
         <p class="ck-sub">Toca cada uno cuando ya lo tengas medido sobre la mesa.</p>
         <ul class="ck-check">${(r.ingredientes||[]).map((x,k) => { const c = qtyOf(x.cantidad, fac), e = qtyOf(x.exacta, fac);
-          return `<li><label class="${this.have.has(k)?"on":""}"><input type="checkbox" data-have="${k}" ${this.have.has(k)?"checked":""}><span class="ck-box">${cki("ok")}</span><span class="ck-iname">${esc(x.item)}</span><span class="ck-q"><b>${esc(c)}</b>${e && norm(e)!==norm(c) ? `<small>${esc(e)}</small>` : ""}</span></label></li>`; }).join("")}</ul>
+          return `<li><label class="${this.have.has(k)?"on":""}"><input type="checkbox" data-have="${k}" ${this.have.has(k)?"checked":""}><span class="ck-box">${cki("ok")}</span><span class="ck-ithumb">${PIC.tag(this.ingUrl(k))}</span><span class="ck-iname">${esc(x.item)}</span><span class="ck-q"><b>${esc(c)}</b>${e && norm(e)!==norm(c) ? `<small>${esc(e)}</small>` : ""}</span></label></li>`; }).join("")}</ul>
       </section>
       ${tools.length ? `<section class="ck-card"><h3>Vas a usar</h3><p class="ck-tools">${tools.map(esc).join(" · ")}</p></section>` : ""}
       <section class="ck-card"><h3>Deja listo antes</h3><ul class="ck-list">${antes.map(a => `<li>${esc(a)}</li>`).join("")}</ul>
@@ -2416,9 +2488,16 @@ Responde SOLO JSON: {"antes":[string — 2 a 4 cosas para dejar listas antes de 
     const fire = g?.fuego && /bajo|medio|alto/.test(g.fuego) ? g.fuego : "";
     return `<div class="ck-step">
       <div class="ck-meta"><span class="ck-num">Paso ${this.i+1} <small>de ${this.n}</small></span><span class="ck-pill">${esc(ACTNAME[act]||"")}</span>${fire ? `<span class="ck-pill fire">${cki("flame")} Fuego ${esc(fire)}</span>` : ""}</div>
+      <div class="ck-stage act-${act}${/hervir|freir|hornear/.test(act) ? " hot" : ""}" id="ckStage">
+        ${PIC.tag(this.sceneUrl(this.i), "ck-scene", "Cómo debe verse este paso")}
+        ${/hervir|freir|hornear/.test(act) ? `<span class="ck-steam" aria-hidden="true"><i></i><i></i><i></i></span>` : ""}
+        <span class="ck-stlab">Así debe verse al terminar</span>
+        ${ings.length ? `<span class="ck-cnt" id="ckCnt">${ings.filter(x => this.added.has(this.i + ":" + r.ingredientes.indexOf(x))).length}/${ings.length} en ${UT_ES[act]||"la cocina"}</span>` : ""}
+        <span class="ck-pop" id="ckPop"></span>
+      </div>
       <p class="ck-text">${esc(stepShown(r, p))}</p>
-      ${ings.length ? `<div class="ck-use"><span class="ck-lab">Usa ahora</span><ul>${ings.map(x => { const c = qtyOf(x.cantidad, fac), e = qtyOf(x.exacta, fac);
-        return `<li><b>${esc(c)}</b> ${esc(x.item.split(/[(]/)[0].trim())}${e && norm(e)!==norm(c) ? ` <small>${esc(e)}</small>` : ""}</li>`; }).join("")}</ul></div>` : ""}
+      ${ings.length ? `<div class="ck-tray"><span class="ck-lab">Toca cada ingrediente cuando lo eches a ${UT_ES[act]||"la preparación"}</span><div class="ck-tcards">${ings.map(x => { const k = r.ingredientes.indexOf(x), c = qtyOf(x.cantidad, fac), e = qtyOf(x.exacta, fac), on = this.added.has(this.i + ":" + k);
+        return `<button class="ck-ingc${on ? " in" : ""}" data-add="${k}" aria-pressed="${on}"><span class="ck-ingp">${PIC.tag(this.ingUrl(k))}<span class="ck-ingok">${cki("ok")}</span></span><b>${esc(c)}</b><span>${esc(x.item.split(/[(,]/)[0].trim())}</span>${e && norm(e)!==norm(c) ? `<small>${esc(e)}</small>` : ""}</button>`; }).join("")}</div></div>` : ""}
       ${mins ? this.timerHTML(mins) : ""}
       ${g ? `<div class="ck-tips">
         ${g.listo_cuando ? `<div class="tip ok">${cki("ok")}<p><b>Está listo cuando</b>${esc(g.listo_cuando)}</p></div>` : ""}
@@ -2466,6 +2545,7 @@ Responde SOLO JSON: {"antes":[string — 2 a 4 cosas para dejar listas antes de 
     const O = S.orig, s = savedFor(O), pic = O._thumb || picOf(this.r);
     return `<div class="ck-end">
       ${pic ? `<img src="${pic}" alt="" class="foto">` : ""}
+      <div class="ck-film" aria-label="Tu receta paso a paso">${this.r.pasos.map((_,k) => `<figure>${PIC.tag(this.sceneUrl(k))}<figcaption>${k+1}</figcaption></figure>`).join("")}</div>
       <span class="ck-num">¡A la mesa!</span>
       <h2 class="ck-h">${esc(this.r.nombre)}</h2>
       <p class="ck-sub">¿Cómo te quedó? Lo que anotes aquí aparece la próxima vez que la cocines.</p>
@@ -2485,6 +2565,7 @@ Responde SOLO JSON: {"antes":[string — 2 a 4 cosas para dejar listas antes de 
     B.querySelectorAll("[data-pause]").forEach(b => b.onclick = () => this.pause(b.dataset.pause));
     B.querySelectorAll("[data-plus]").forEach(b => b.onclick = () => this.plus(b.dataset.plus));
     B.querySelectorAll("[data-ack]").forEach(b => b.onclick = () => this.ack(b.dataset.ack));
+    B.querySelectorAll("[data-add]").forEach(b => b.onclick = () => this.addIng(b));
     B.querySelectorAll("[data-jump]").forEach(b => b.onclick = () => this.go(+b.dataset.jump));
     B.querySelectorAll("[data-sug]").forEach(b => b.onclick = () => this.ask(b.dataset.sug));
     B.querySelector(".ck-ask")?.addEventListener("toggle", e => this.askOpen = e.target.open);
@@ -2498,6 +2579,26 @@ Responde SOLO JSON: {"antes":[string — 2 a 4 cosas para dejar listas antes de 
       markCooked(); this.rating = 0; this.notes = null; this.close();
     };
     const back = $("#ckBack"); if(back) back.onclick = () => this.close();
+  },
+
+  /* ----- echar ingredientes: la tarjeta vuela a la olla/sartén y queda marcada ----- */
+  addIng(b){
+    const key = this.i + ":" + b.dataset.add, on = !this.added.has(key), st = $("#ckStage");
+    on ? this.added.add(key) : this.added.delete(key);
+    b.classList.toggle("in", on); b.setAttribute("aria-pressed", on);
+    const ings = stepIngs(this.r, this.r.pasos[this.i]), got = ings.filter(x => this.added.has(this.i + ":" + this.r.ingredientes.indexOf(x))).length;
+    const cnt = $("#ckCnt"); if(cnt) cnt.textContent = cnt.textContent.replace(/^\d+/, got);
+    if(!on || !st) return;
+    const src = b.querySelector(".ck-ingp"), a = src.getBoundingClientRect(), z = st.getBoundingClientRect();
+    if(!matchMedia("(prefers-reduced-motion: reduce)").matches){
+      const f = src.cloneNode(true); f.className = "ck-fly"; Object.assign(f.style, { left:a.left+"px", top:a.top+"px", width:a.width+"px", height:a.height+"px" });
+      document.body.appendChild(f);
+      const dx = z.left + z.width/2 - (a.left + a.width/2), dy = z.top + z.height*.55 - (a.top + a.height/2);
+      f.animate([{ transform:"translate(0,0) scale(1) rotate(0)", opacity:1 }, { transform:`translate(${dx*.55}px,${dy - 80}px) scale(.8) rotate(-12deg)`, opacity:1, offset:.55 }, { transform:`translate(${dx}px,${dy}px) scale(.25) rotate(-30deg)`, opacity:0 }], { duration:650, easing:"cubic-bezier(.3,.7,.4,1)" }).onfinish = () => f.remove();
+    }
+    setTimeout(() => { st.classList.remove("splash"); void st.offsetWidth; st.classList.add("splash");
+      const pop = $("#ckPop"); if(pop){ pop.textContent = got === ings.length ? "¡Todo adentro!" : "+ " + b.querySelector("span:not(.ck-ingp):not(.ck-ingok)")?.textContent; pop.classList.remove("show"); void pop.offsetWidth; pop.classList.add("show"); }
+      try{ navigator.vibrate?.(25); }catch{} }, 520);
   },
 
   /* ----- temporizadores (varios a la vez, siguen aunque cambies de paso) ----- */
