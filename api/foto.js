@@ -1,19 +1,23 @@
-// Foto realista del plato en 4K (3840×2880). GET /api/foto?q=<descripción del plato>&s=<semilla>
+// Foto realista generada por IA. GET /api/foto?q=<descripción>&s=<semilla>&t=<tipo>
+// Se piden en tamaño moderado para que salgan rápido (el servicio gratis no da más resolución de todas formas).
 // 1) Genera una foto tipo estudio con Pollinations (gratis, sin clave).
 // 2) Si falla y existe PEXELS_API_KEY (gratis en pexels.com/api), busca una foto real parecida.
 // La respuesta se guarda en la CDN de Vercel, así el mismo plato no se vuelve a generar.
 
-// t=plato (por defecto): el plato servido · t=paso: cómo se ve la olla/sartén/bol en ese paso · t=ing: un ingrediente medido
-const BASE = "soft natural window light, photorealistic, ultra detailed, sharp focus, 4k, no text, no watermark, no people, no hands";
+// t=plato (por defecto): el plato servido · t=paso: cómo se ve la olla/sartén/bol en ese paso · t=mise: todos los ingredientes listos
+const BASE = "soft natural window light, photorealistic, ultra detailed, sharp focus, no text, no watermark, no people, no hands";
 const STYLES = {
   plato: "professional food photography, served on a matte ceramic plate on a rustic wooden table, 45 degree angle, shallow depth of field, appetizing, editorial magazine style, " + BASE,
   paso: "realistic home cooking photo taken from above while cooking, inside the cookware on a home kitchen stove or counter, natural colors and textures, steam if hot, " + BASE,
+  mise: "all the ingredients for the recipe measured and laid out in small white ceramic bowls, mise en place, top-down view on a light wooden kitchen counter, neat arrangement, " + BASE,
   ing: "raw ingredient measured in a small white ceramic prep bowl, mise en place, top-down view on a light wooden kitchen counter, clean, " + BASE
 };
 
-async function pollinations(q, seed, deadline, style){
+const SIZE = { paso:[768,576], ing:[512,512] };
+async function pollinations(q, seed, deadline, style, t){
+  const [w, h] = SIZE[t] || [1024, 768];
   const prompt = encodeURIComponent((q + ", " + style).slice(0, 700));
-  const url = "https://image.pollinations.ai/prompt/" + prompt + "?width=3840&height=2880&nologo=true&private=true&model=flux&seed=" + seed;
+  const url = "https://image.pollinations.ai/prompt/" + prompt + "?width=" + w + "&height=" + h + "&nologo=true&private=true&enhance=false&model=flux&seed=" + seed;
   for(let i = 0; i < 2; i++){
     const left = deadline - Date.now(); if(left < 8000) return null;
     const r = await fetch(url, { signal: AbortSignal.timeout(left - 2000) }).catch(() => null);
@@ -56,7 +60,7 @@ module.exports = async function handler(req, res){
   if(req.method !== "GET" || q.length < 3) return res.status(400).end();
   try{
     const style = STYLES[req.query?.t] || STYLES.plato;
-    let img = await pollinations(q, seed, deadline, style);
+    let img = await pollinations(q, seed, deadline, style, req.query?.t);
     if(!img && process.env.PEXELS_API_KEY && !req.query?.t) img = await pexels(q, process.env.PEXELS_API_KEY);
     if(!img){ res.setHeader("Cache-Control", "no-store"); return res.status(404).end(); }
     if(req.query?.info) return res.status(200).json({ bytes: img.buf.length, ...dims(img.buf) });

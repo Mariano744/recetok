@@ -731,6 +731,7 @@ ol.steps li .mins{display:inline-block;margin-left:8px;font:500 .72rem var(--f-n
 .ck-nav .go{flex:2;background:var(--brand);border-color:var(--brand);color:var(--on-brand)}
 .ck-nav button[disabled]{opacity:.4}
 /* Escena realista del paso: la foto de cómo debe verse, vapor, y los ingredientes que caen */
+.ck-mise{aspect-ratio:16/9}
 .ck-stage{position:relative;aspect-ratio:4/3;border-radius:20px;overflow:hidden;margin:0 0 16px;background:linear-gradient(110deg,var(--brand-soft) 35%,var(--surface) 50%,var(--brand-soft) 65%) 0 0/250% 100%;animation:fshim 1.8s linear infinite;box-shadow:var(--shadow)}
 .ck-stage:has(.ck-scene:not(.wait)){animation:none;background:#1d1a17}
 .ck-scene{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:kenburns 18s ease-in-out infinite alternate;transform-origin:50% 55%}
@@ -751,19 +752,15 @@ ol.steps li .mins{display:inline-block;margin-left:8px;font:500 .72rem var(--f-n
 @keyframes popin{0%{opacity:0;transform:translate(-50%,-30%) scale(.8)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-90%)}}
 .ck-tray{margin-bottom:14px}
 .ck-tcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;margin-top:8px}
-.ck-ingc{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:6px 6px 9px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);text-align:left;cursor:pointer;font:500 .84rem/1.25 var(--f-body);transition:transform .15s,border-color .2s,opacity .2s}
+.ck-ingc{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px 12px 11px;min-height:86px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);text-align:left;cursor:pointer;font:500 .84rem/1.25 var(--f-body);transition:transform .15s,border-color .2s,opacity .2s}
 .ck-ingc:active{transform:scale(.96)}
 .ck-ingc b{font:600 .84rem var(--f-num);color:var(--brand);margin-top:4px;padding:0 3px}.ck-ingc>span{padding:0 3px}.ck-ingc small{color:var(--muted);font:500 .72rem var(--f-num);padding:0 3px}
-.ck-ingp{position:relative;display:block;width:100%;aspect-ratio:1;border-radius:10px;overflow:hidden;background:linear-gradient(110deg,var(--brand-soft) 35%,var(--surface) 50%,var(--brand-soft) 65%) 0 0/250% 100%;animation:fshim 1.8s linear infinite}
-.ck-ingp:has(img:not(.wait)){animation:none}
-.ck-ingp img{width:100%;height:100%;object-fit:cover;display:block}.ck-ingp img.wait{opacity:0}
-.ck-ingok{position:absolute;inset:0;display:grid;place-items:center;background:rgba(47,107,79,.72);color:#fff;opacity:0;transition:opacity .2s}
-.ck-ingok svg{width:34px;height:34px;stroke-width:2.6}
+.ck-ingc b{font-size:1.05rem!important;margin-top:0!important}
+.ck-ingok{position:absolute;right:8px;top:8px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--brand);color:var(--on-brand);opacity:0;transform:scale(.6);transition:opacity .2s,transform .2s}
+.ck-ingok svg{width:15px;height:15px;stroke-width:2.8}.ck-ingc.in{background:var(--brand-soft)}.ck-ingc.in .ck-ingok{transform:scale(1)}
 .ck-ingc.in{border-color:var(--brand)}.ck-ingc.in .ck-ingok{opacity:1}.ck-ingc.in>span,.ck-ingc.in b{opacity:.6}
-.ck-fly{position:fixed;z-index:80;border-radius:10px;overflow:hidden;pointer-events:none;box-shadow:0 10px 24px rgba(0,0,0,.3)}
+.ck-fly{position:fixed;z-index:80;border-radius:14px;overflow:hidden;pointer-events:none;box-shadow:0 10px 24px rgba(0,0,0,.3);background:var(--surface);border:1px solid var(--brand);padding:12px;display:flex;flex-direction:column;font:500 .84rem var(--f-body);color:var(--ink)}
 .ck-fly img{width:100%;height:100%;object-fit:cover}.ck-fly .ck-ingok{display:none}
-.ck-ithumb{width:44px;height:44px;border-radius:10px;overflow:hidden;flex:none;background:var(--brand-soft)}
-.ck-ithumb img{width:100%;height:100%;object-fit:cover;display:block}.ck-ithumb img.wait{opacity:0}
 .ck-film{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
 .ck-film figure{margin:0;position:relative;flex:0 0 92px;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--brand-soft)}
 .ck-film img{width:100%;height:100%;object-fit:cover}.ck-film img.wait{opacity:0}
@@ -1667,7 +1664,7 @@ $("#txt").addEventListener("input", drawLinkChips);
 /* ---------- IA ---------- */
 const SCHEMA = `{"nombre":string,"foto_en":string — descripción corta EN INGLÉS del plato terminado para una foto profesional (ingredientes visibles, cómo se sirve, ej "creamy garlic chicken penne with parmesan and parsley"),"descripcion":string (1 frase),"porciones":number,"tiempo_min":number,"dificultad":"Fácil"|"Media"|"Difícil",
 "ingredientes":[{"item":string,"cantidad":string en medidas caseras que empiece con número (ej "1 taza", "2 cdas", "3 dientes") o "al gusto","exacta":string en gramos o ml que empiece con número (ej "240 ml", "150 g") o "al gusto","alergenos":[de esta lista: "gluten","lácteos","huevo","maní","frutos secos","mariscos","pescado","soya","sésamo"],"precio_s":number costo aproximado en soles (Perú, mercado/supermercado) de esa cantidad}],
-"pasos":[{"texto":string,"accion":"hervir"|"freir"|"cortar"|"mezclar"|"hornear"|"licuar"|"reposar"|"servir","minutos":number (tiempo de espera/cocción del paso, 0 si es una acción rápida)}],
+"pasos":[{"texto":string,"accion":"hervir"|"freir"|"cortar"|"mezclar"|"hornear"|"licuar"|"reposar"|"servir","minutos":number (tiempo de espera/cocción del paso, 0 si es una acción rápida),"escena_en":string — solo en pasos de olla, sartén, horno, bol o licuadora: EN INGLÉS, cómo se ve lo que hay dentro al terminar el paso, visto desde arriba (ej "golden chicken strips sizzling in butter in a frying pan"); "" en los demás}],
 "si_sale_mal":[{"problema":string corto (ej "queda seco", "se corta la salsa", "queda crudo por dentro"),"causa":string 1 frase,"solucion":string — cómo arreglarlo YA y cómo evitarlo la próxima vez}] (3 a 4 problemas típicos de ESTE plato, concretos, no genéricos),
 "trucos":[string — 3 consejos de cocinero que el video/receta normalmente NO dice: punto exacto, textura, sazón, errores comunes, reemplazos, cómo conservarlo],
 "nutricion_por_porcion":{"calorias":number,"proteinas_g":number,"carbohidratos_g":number,"azucares_g":number,"grasas_g":number,"grasas_saturadas_g":number,"fibra_g":number,"sodio_mg":number},
@@ -2412,14 +2409,14 @@ const Cook = {
   /* Consejos de cocinero para cada paso (una sola consulta a la IA, se guarda con la receta) */
   async loadGuide(){
     if(this.guide || this.loading || !sample){ this.queuePics(); return; }
+    if(this.hasEsc) setTimeout(() => this.queuePics(), 0);
     const r = this.r; this.loading = true;
     try{
       const g = await sample.json(`Eres un cocinero profesional que acompaña a alguien MIENTRAS cocina en su casa (Perú/Latinoamérica). Le hablas de tú, claro y corto.
 Receta (JSON): ${JSON.stringify(strip(r))}
 Va a preparar ${S.servings} porciones.
 Para CADA uno de los ${r.pasos.length} pasos, en el mismo orden, da ayuda concreta para ESTE plato (nada genérico como "con cuidado").
-Responde SOLO JSON: {"ingredientes_en":[string — para CADA ingrediente de la receta, en el mismo orden (exactamente ${(r.ingredientes||[]).length}), descripción corta EN INGLÉS de cómo se ve ya preparado para usar, ej "finely minced garlic cloves", "grated parmesan cheese"],
-"antes":[string — 2 a 4 cosas para dejar listas antes de empezar: qué picar y medir, precalentar el horno a cuántos °C, sacar algo de la refri, etc.],
+Responde SOLO JSON: {"antes":[string — 2 a 4 cosas para dejar listas antes de empezar: qué picar y medir, precalentar el horno a cuántos °C, sacar algo de la refri, etc.],
 "pasos":[{"listo_cuando":string — la señal concreta de que el paso está bien (color, textura, olor, sonido o prueba; ej "la cebolla está transparente y huele dulce"),"fuego":"bajo"|"medio"|"medio-alto"|"alto"|"" (vacío si el paso no usa fuego),"ojo":string — el error típico en este paso y cómo evitarlo, máximo 1 frase,"mientras":string — qué adelantar mientras esperas, solo si el paso tiene espera; si no, "","escena_en":string — EN INGLÉS, cómo se ve lo que hay dentro de la olla/sartén/bol/tabla al TERMINAR este paso, visto desde arriba: ingredientes, colores, textura, burbujas o vapor (ej "golden seared chicken strips sizzling in olive oil inside a frying pan")}]} (exactamente ${r.pasos.length} elementos en "pasos")`, { modelTier:"quick" });
       if(g && Array.isArray(g.pasos) && g.pasos.length === r.pasos.length){ r._guia = { antes:(g.antes||[]).slice(0,5), pasos:g.pasos, ing_en:Array.isArray(g.ingredientes_en) && g.ingredientes_en.length === (r.ingredientes||[]).length ? g.ingredientes_en : null }; this.persist(); }
     }catch{}
@@ -2428,17 +2425,32 @@ Responde SOLO JSON: {"ingredientes_en":[string — para CADA ingrediente de la r
     if(this.r === r && !$("#game").hidden) this.draw();
   },
 
-  ingUrl(k){ const x = this.r.ingredientes[k], d = this.guide?.ing_en?.[k] || x.item.split(/[(]/)[0]; return PIC.url(d, "ing", seedOf(x.item) % 9973); },
-  sceneUrl(i){ const p = this.r.pasos[i], g = this.guide?.pasos[i], act = stepAction(p);
-    return PIC.url(g?.escena_en ? g.escena_en + ", " + (UT_EN[act]||"") : stepText(p) + " — " + (UT_EN[act]||""), act === "servir" ? "plato" : "paso", (seedOf(this.r.nombre) + i*101) % 99991); },
+  /* Pocas imágenes, bien elegidas: una foto de todo listo, la foto del plato, y como máximo 4 escenas de olla/sartén/bol */
+  get hasEsc(){ return this.r.pasos.some(p => p?.escena_en); },
+  get ready(){ return !this.loading || this.hasEsc; },
+  miseUrl(){ const r = this.r; return PIC.url((r.foto_en || r.nombre) + " ingredients: " + (r.ingredientes||[]).map(x => x.item.split(/[(,]/)[0].trim()).slice(0, 10).join(", "), "mise", seedOf(r.nombre) % 9973); },
+  get picked(){
+    const vis = this.r.pasos.map((p,k) => [k, stepAction(p)]).filter(([,a]) => /hervir|freir|hornear|mezclar|licuar/.test(a)).map(([k]) => k);
+    if(vis.length <= 4) return vis;
+    return [0,1,2,3].map(j => vis[Math.round(j * (vis.length-1) / 3)]);
+  },
+  shown(i){                                   // qué foto se ve en el paso i y con qué etiqueta
+    const act = stepAction(this.r.pasos[i]);
+    if(act === "servir" || i === this.n-1 && !this.picked.includes(i)) return { url:picOf(this.r), lab:"Así queda el plato" };
+    if(this.picked.includes(i)) return { url:this.sceneUrl(i), lab:"Así debe verse al terminar" };
+    const prev = this.picked.filter(k => k < i).pop();
+    return prev != null ? { url:this.sceneUrl(prev), lab:"Así va tu preparación" } : { url:this.miseUrl(), lab:"Tus ingredientes" };
+  },
+  sceneUrl(i){ const p = this.r.pasos[i], g = this.guide?.pasos[i], act = stepAction(p), d = p?.escena_en || g?.escena_en;
+    return PIC.url(d ? d + ", " + (UT_EN[act]||"") : stepText(p) + " — " + (UT_EN[act]||""), "paso", (seedOf(this.r.nombre) + i*101) % 99991); },
   queuePics(){
-    if(!this.r || this.loading) return;
-    const n = this.n, cur = Math.max(0, Math.min(n-1, this.i));
-    PIC.want([this.sceneUrl(cur), ...(this.r.ingredientes||[]).map((_,k) => this.ingUrl(k)), ...this.r.pasos.map((_,k) => this.sceneUrl(k))]);
+    if(!this.r || !this.ready) return;
+    const cur = Math.max(0, Math.min(this.n-1, this.i));
+    PIC.want([this.i < 0 ? this.miseUrl() : this.shown(cur).url, picOf(this.r), this.miseUrl(), ...this.picked.map(k => this.sceneUrl(k))]);
   },
   go(i){
     this.i = Math.max(-1, Math.min(this.n, i));
-    if(this.r && !this.loading && this.i >= 0 && this.i < this.n) PIC.want([this.sceneUrl(this.i), ...stepIngs(this.r, this.r.pasos[this.i]).map(x => this.ingUrl(this.r.ingredientes.indexOf(x))), this.i+1 < this.n ? this.sceneUrl(this.i+1) : ""], true);
+    if(this.r && this.ready && this.i >= 0 && this.i < this.n){ const nx = this.picked.find(k => k > this.i); PIC.want([this.shown(this.i).url, nx != null ? this.sceneUrl(nx) : ""], true); }
     this.listOpen = false; this.ans = ""; this.askOpen = false; this.draw(); this.speak();
     $("#gBody").scrollTop = 0;
   },
@@ -2465,6 +2477,7 @@ Responde SOLO JSON: {"ingredientes_en":[string — para CADA ingrediente de la r
     return `<div class="ck-prep">
       <span class="ck-num">Antes de empezar</span>
       <h2 class="ck-h">Prepara tu espacio</h2>
+      <div class="ck-stage ck-mise">${PIC.tag(this.miseUrl(), "ck-scene", "Todos los ingredientes listos")}<span class="ck-stlab">Así deben quedar tus ingredientes</span></div>
       <div class="ck-facts">
         ${r.tiempo_min ? `<span>${cki("clock")} ${esc(r.tiempo_min)} min en total</span>` : ""}
         <span>${n2(this.n)} pasos</span>
@@ -2474,7 +2487,7 @@ Responde SOLO JSON: {"ingredientes_en":[string — para CADA ingrediente de la r
         <div class="ck-cardh"><h3>Ingredientes</h3><small>${got}/${all} listos</small></div>
         <p class="ck-sub">Toca cada uno cuando ya lo tengas medido sobre la mesa.</p>
         <ul class="ck-check">${(r.ingredientes||[]).map((x,k) => { const c = qtyOf(x.cantidad, fac), e = qtyOf(x.exacta, fac);
-          return `<li><label class="${this.have.has(k)?"on":""}"><input type="checkbox" data-have="${k}" ${this.have.has(k)?"checked":""}><span class="ck-box">${cki("ok")}</span><span class="ck-ithumb">${PIC.tag(this.ingUrl(k))}</span><span class="ck-iname">${esc(x.item)}</span><span class="ck-q"><b>${esc(c)}</b>${e && norm(e)!==norm(c) ? `<small>${esc(e)}</small>` : ""}</span></label></li>`; }).join("")}</ul>
+          return `<li><label class="${this.have.has(k)?"on":""}"><input type="checkbox" data-have="${k}" ${this.have.has(k)?"checked":""}><span class="ck-box">${cki("ok")}</span><span class="ck-iname">${esc(x.item)}</span><span class="ck-q"><b>${esc(c)}</b>${e && norm(e)!==norm(c) ? `<small>${esc(e)}</small>` : ""}</span></label></li>`; }).join("")}</ul>
       </section>
       ${tools.length ? `<section class="ck-card"><h3>Vas a usar</h3><p class="ck-tools">${tools.map(esc).join(" · ")}</p></section>` : ""}
       <section class="ck-card"><h3>Deja listo antes</h3><ul class="ck-list">${antes.map(a => `<li>${esc(a)}</li>`).join("")}</ul>
@@ -2485,19 +2498,19 @@ Responde SOLO JSON: {"ingredientes_en":[string — para CADA ingrediente de la r
   stepHTML(){
     const r = this.r, p = r.pasos[this.i], act = stepAction(p), fac = stepFac(r), g = this.guide?.pasos[this.i] || null;
     const ings = stepIngs(r, p), mins = stepMinutes(p);
-    const fire = g?.fuego && /bajo|medio|alto/.test(g.fuego) ? g.fuego : "";
+    const fire = g?.fuego && /bajo|medio|alto/.test(g.fuego) ? g.fuego : "", sh = this.shown(this.i);
     return `<div class="ck-step">
       <div class="ck-meta"><span class="ck-num">Paso ${this.i+1} <small>de ${this.n}</small></span><span class="ck-pill">${esc(ACTNAME[act]||"")}</span>${fire ? `<span class="ck-pill fire">${cki("flame")} Fuego ${esc(fire)}</span>` : ""}</div>
       <div class="ck-stage act-${act}${/hervir|freir|hornear/.test(act) ? " hot" : ""}" id="ckStage">
-        ${PIC.tag(this.sceneUrl(this.i), "ck-scene", "Cómo debe verse este paso")}
+        ${PIC.tag(sh.url, "ck-scene", sh.lab)}
         ${/hervir|freir|hornear/.test(act) ? `<span class="ck-steam" aria-hidden="true"><i></i><i></i><i></i></span>` : ""}
-        <span class="ck-stlab">Así debe verse al terminar</span>
+        <span class="ck-stlab">${sh.lab}</span>
         ${ings.length ? `<span class="ck-cnt" id="ckCnt">${ings.filter(x => this.added.has(this.i + ":" + r.ingredientes.indexOf(x))).length}/${ings.length} en ${UT_ES[act]||"la cocina"}</span>` : ""}
         <span class="ck-pop" id="ckPop"></span>
       </div>
       <p class="ck-text">${esc(stepShown(r, p))}</p>
       ${ings.length ? `<div class="ck-tray"><span class="ck-lab">Toca cada ingrediente cuando lo eches a ${UT_ES[act]||"la preparación"}</span><div class="ck-tcards">${ings.map(x => { const k = r.ingredientes.indexOf(x), c = qtyOf(x.cantidad, fac), e = qtyOf(x.exacta, fac), on = this.added.has(this.i + ":" + k);
-        return `<button class="ck-ingc${on ? " in" : ""}" data-add="${k}" aria-pressed="${on}"><span class="ck-ingp">${PIC.tag(this.ingUrl(k))}<span class="ck-ingok">${cki("ok")}</span></span><b>${esc(c)}</b><span>${esc(x.item.split(/[(,]/)[0].trim())}</span>${e && norm(e)!==norm(c) ? `<small>${esc(e)}</small>` : ""}</button>`; }).join("")}</div></div>` : ""}
+        return `<button class="ck-ingc${on ? " in" : ""}" data-add="${k}" aria-pressed="${on}"><span class="ck-ingok">${cki("ok")}</span><b>${esc(c)}</b><span class="ck-ingn">${esc(x.item.split(/[(,]/)[0].trim())}</span>${e && norm(e)!==norm(c) ? `<small>${esc(e)}</small>` : ""}</button>`; }).join("")}</div></div>` : ""}
       ${mins ? this.timerHTML(mins) : ""}
       ${g ? `<div class="ck-tips">
         ${g.listo_cuando ? `<div class="tip ok">${cki("ok")}<p><b>Está listo cuando</b>${esc(g.listo_cuando)}</p></div>` : ""}
@@ -2545,7 +2558,7 @@ Responde SOLO JSON: {"ingredientes_en":[string — para CADA ingrediente de la r
     const O = S.orig, s = savedFor(O), pic = O._thumb || picOf(this.r);
     return `<div class="ck-end">
       ${pic ? `<img src="${pic}" alt="" class="foto">` : ""}
-      <div class="ck-film" aria-label="Tu receta paso a paso">${this.r.pasos.map((_,k) => `<figure>${PIC.tag(this.sceneUrl(k))}<figcaption>${k+1}</figcaption></figure>`).join("")}</div>
+      <div class="ck-film" aria-label="Tu receta paso a paso">${this.picked.map(k => `<figure>${PIC.tag(this.sceneUrl(k))}<figcaption>${k+1}</figcaption></figure>`).join("")}</div>
       <span class="ck-num">¡A la mesa!</span>
       <h2 class="ck-h">${esc(this.r.nombre)}</h2>
       <p class="ck-sub">¿Cómo te quedó? Lo que anotes aquí aparece la próxima vez que la cocines.</p>
@@ -2589,7 +2602,7 @@ Responde SOLO JSON: {"ingredientes_en":[string — para CADA ingrediente de la r
     const ings = stepIngs(this.r, this.r.pasos[this.i]), got = ings.filter(x => this.added.has(this.i + ":" + this.r.ingredientes.indexOf(x))).length;
     const cnt = $("#ckCnt"); if(cnt) cnt.textContent = cnt.textContent.replace(/^\d+/, got);
     if(!on || !st) return;
-    const src = b.querySelector(".ck-ingp"), a = src.getBoundingClientRect(), z = st.getBoundingClientRect();
+    const src = b, a = src.getBoundingClientRect(), z = st.getBoundingClientRect();
     if(!matchMedia("(prefers-reduced-motion: reduce)").matches){
       const f = src.cloneNode(true); f.className = "ck-fly"; Object.assign(f.style, { left:a.left+"px", top:a.top+"px", width:a.width+"px", height:a.height+"px" });
       document.body.appendChild(f);
@@ -2597,7 +2610,7 @@ Responde SOLO JSON: {"ingredientes_en":[string — para CADA ingrediente de la r
       f.animate([{ transform:"translate(0,0) scale(1) rotate(0)", opacity:1 }, { transform:`translate(${dx*.55}px,${dy - 80}px) scale(.8) rotate(-12deg)`, opacity:1, offset:.55 }, { transform:`translate(${dx}px,${dy}px) scale(.25) rotate(-30deg)`, opacity:0 }], { duration:650, easing:"cubic-bezier(.3,.7,.4,1)" }).onfinish = () => f.remove();
     }
     setTimeout(() => { st.classList.remove("splash"); void st.offsetWidth; st.classList.add("splash");
-      const pop = $("#ckPop"); if(pop){ pop.textContent = got === ings.length ? "¡Todo adentro!" : "+ " + b.querySelector("span:not(.ck-ingp):not(.ck-ingok)")?.textContent; pop.classList.remove("show"); void pop.offsetWidth; pop.classList.add("show"); }
+      const pop = $("#ckPop"); if(pop){ pop.textContent = got === ings.length ? "¡Todo adentro!" : "+ " + b.querySelector(".ck-ingn")?.textContent; pop.classList.remove("show"); void pop.offsetWidth; pop.classList.add("show"); }
       try{ navigator.vibrate?.(25); }catch{} }, 520);
   },
 
