@@ -1947,7 +1947,10 @@ function ingestCumpli(){
   try{
     const b = m[1].replace(/-/g,"+").replace(/_/g,"/"); const bin = atob(b + "=".repeat((4 - b.length % 4) % 4));
     const j = JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0))));
-    if(j && j.v === 1){
+    if(j && j.v === 1 && j.receta && j.receta.nombre){
+      pendingCumpliRecipe = { nombre:clip(j.receta.nombre,80), cuando:clip(j.receta.cuando,50), kcal:Math.max(0, Math.min(900, Math.round(+j.receta.kcal)||0)), meta:clip(j.receta.meta,120), saludable:j.receta.saludable !== false };
+    }
+    if(j && j.v === 1 && (j.activos || j.proximos || j.fechas)){
       const ev = e => ({ id:clip(e?.id,40), nombre:clip(e?.nombre), inicio:e?.inicio, fin:e?.fin, region:clip(e?.region,30) });
       lsSet(EV_KEY, { v:1, hoy:dOk(j.hoy) ? j.hoy : dKey(new Date()), recibido:Date.now(),
         activos:(j.activos||[]).slice(0,8).map(ev), proximos:(j.proximos||[]).slice(0,14).map(ev),
@@ -1955,8 +1958,21 @@ function ingestCumpli(){
       toast(`${IC.check} Eventos de Cumpli recibidos`);
     }
   }catch{}
-  history.replaceState(null, "", location.pathname + "#eventos");
+  history.replaceState(null, "", location.pathname + (pendingCumpliRecipe ? "#analizar" : "#eventos"));
   return true;
+}
+/* Receta pedida desde Cumpli (por ejemplo un snack del plan de Ejercicio): se arma sola al llegar */
+let pendingCumpliRecipe = null;
+async function cumpliRecipe(r){
+  if(!sample){ $("#status").innerHTML = `<span class="err">${noAIMsg}</span>`; return; }
+  $("#status").innerHTML = `<span class="dot"></span> Armando la receta de ${esc(r.nombre)}…`;
+  const txt = `Receta de ${r.nombre}${r.cuando ? " (para "+r.cuando.toLowerCase()+")" : ""}${r.kcal ? ", de unas "+r.kcal+" kcal por porción" : ""}. ${r.meta ? "Objetivo de quien lo prepara: "+r.meta+". " : ""}${r.saludable ? "Que sea rápida, barata y saludable, con ingredientes fáciles de conseguir en Perú." : "Con todo el sabor, con ingredientes fáciles de conseguir en Perú."}`;
+  try{
+    const x = await sample.json(PROMPT(txt, false, "", false), {});
+    if(!x || x.error || !x.nombre){ $("#status").innerHTML = `<span class="err">${esc(x?.error || "No pude armar esa receta. Prueba de nuevo.")}</span>`; return; }
+    x.id = uid(); load(x); saveHist(x);
+    $("#status").textContent = "Listo ✓ · receta pedida desde Cumpli"; scrollToResult();
+  }catch(e){ $("#status").innerHTML = `<span class="err">${errMsg(e)}</span>`; }
 }
 
 /* Calendario peruano de respaldo (cuando todavía no hay conexión con Cumpli) */
@@ -2165,6 +2181,7 @@ drawCopyChips();
 const VIEWS = ["analizar","recetario","semana","eventos"];
 function route(){
   if(/^#cumpli=/.test(location.hash)) ingestCumpli();
+  if(pendingCumpliRecipe){ const r = pendingCumpliRecipe; pendingCumpliRecipe = null; setTimeout(() => cumpliRecipe(r), 400); }
   const h = location.hash.replace("#","");
   const v = VIEWS.includes(h) ? h : "analizar";
   VIEWS.forEach(x => { $("#view-"+x).hidden = x!==v; });
