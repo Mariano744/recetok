@@ -229,6 +229,11 @@ ul.ing label{display:flex;gap:10px;align-items:center;cursor:pointer;min-width:0
 .tricks{margin:0;padding-left:20px;display:grid;gap:6px}
 .diag textarea{width:100%;margin:10px 0;border:1px solid var(--line);border-radius:12px;padding:10px;font:inherit;background:var(--surface);color:inherit}
 .diagrow{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:8px}.diagrow .thumbs img{height:64px;border-radius:10px}
+.measure{padding:16px}.measin{width:100%;margin-top:10px;border:1px solid var(--line);border-radius:12px;padding:10px;font:inherit;background:var(--surface);color:inherit}
+.measure .btn.primary#measGo{margin-top:12px}
+.measres{margin-top:14px;border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:var(--surface)}
+.measbig{font-size:1.6rem;font-weight:700;margin:2px 0 8px}
+.meastable{width:100%;border-collapse:collapse;margin:8px 0}.meastable td,.meastable th{padding:6px 4px;border-bottom:1px solid var(--line);text-align:left}
 .diagres{margin-top:14px;border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:var(--surface)}
 .diagres h5{margin:12px 0 4px}.diagres ul{margin:0;padding-left:20px;display:grid;gap:4px}
 .verdict{margin:0;padding:10px 12px;border-radius:10px}.verdict.good{background:#e4f1e4}.verdict.warn{background:#fff3d6}.verdict.bad{background:#fbe0dc}
@@ -790,6 +795,7 @@ img.foto.broken{visibility:hidden}
       <a class="tab" href="#" data-view="analizar" id="tabA"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg><span>Analizar</span></a>
       <a class="tab" href="#recetario" data-view="recetario" id="tabR"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/></svg><span>Recetario</span><b class="tabcount" id="bookCount"></b></a>
       <a class="tab" href="#semana" data-view="semana" id="tabS"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg><span>Semana</span></a>
+      <a class="tab" href="#medidas" data-view="medidas" id="tabM"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12l-1.5 16h-9z"/><path d="M8 9h3M8 13h3M8 17h3"/></svg><span>Medidas</span></a>
       <a class="tab" href="#eventos" data-view="eventos" id="tabE"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/></svg><span>Eventos</span></a>
     </div>
   </div>
@@ -835,6 +841,25 @@ img.foto.broken{visibility:hidden}
     </header>
 
     <main class="result" id="result"></main>
+  </section>
+
+  <!-- ============ MEDIDAS ============ -->
+  <section class="view" id="view-medidas" hidden>
+    <div class="vhead">
+      <div class="sh"><span class="eyebrow">Con una foto</span><h2 class="vtitle">¿Cuánto cabe?</h2></div>
+    </div>
+    <div class="card measure">
+      <p class="muted">Fotografía una taza, vaso, cuchara, plato, tazón u olla (de preferencia vacío y desde arriba o de lado) y la IA te dice de qué tamaño es: cuántos ml, gramos y a cuántas tazas o cucharadas equivale.</p>
+      <div class="diagrow">
+        <label class="btn primary" for="measFile">📷 Tomar o subir foto</label>
+        <input type="file" id="measFile" accept="image/*" hidden>
+        <div class="thumbs" id="measThumb"></div>
+      </div>
+      <input id="measWhat" type="text" class="measin" placeholder="¿Qué quieres medir? Ej: arroz, harina, agua (opcional)" autocomplete="off">
+      <input id="measRef" type="text" class="measin" placeholder="Referencia de tamaño: ej. “la taza mide 9 cm de alto” (opcional)" autocomplete="off">
+      <button class="btn primary" id="measGo">Calcular medida</button>
+      <div id="measOut" aria-live="polite"></div>
+    </div>
   </section>
 
   <!-- ============ EVENTOS ============ -->
@@ -2177,8 +2202,36 @@ $("#ccChips").addEventListener("click", e => { const b = e.target.closest("[data
 $("#ccForm").addEventListener("submit", e => { e.preventDefault(); copyRecipe($("#ccIn").value); });
 drawCopyChips();
 
+/* ---------- Medidas por foto ---------- */
+let MEASF = null;
+$("#measFile").onchange = e => { MEASF = e.target.files[0] || null; $("#measThumb").innerHTML = MEASF ? `<img src="${URL.createObjectURL(MEASF)}" alt="Tu utensilio">` : ""; $("#measOut").innerHTML = ""; };
+async function measure(){
+  if(!sample){ toast(noAIMsg); return; }
+  if(!MEASF){ toast("Sube primero una foto."); return; }
+  const what = $("#measWhat").value.trim().slice(0,80), ref = $("#measRef").value.trim().slice(0,120), btn = $("#measGo");
+  btn.disabled = true; btn.innerHTML = `<span class="dot"></span> Midiendo…`;
+  try{
+    const d = await sample.json(`Eres un experto en cocina y medidas (público de Perú/Latinoamérica). Te adjunto una FOTO de un utensilio o recipiente de cocina (taza, vaso, cuchara, plato, tazón, olla, etc.).
+Identifícalo y estima su CAPACIDAD cuando está lleno a ras. ${ref ? "Referencia de tamaño dada por el usuario: " + ref + "." : "Usa objetos de la foto (manos, cubiertos, mesa) como referencia de escala si los hay."}
+${what ? "El usuario quiere medir: " + what + ". Da los gramos de ese ingrediente." : "Para los gramos, da los de agua y de arroz, harina de trigo y azúcar."}
+Compara con medidas estándar (taza = 240 ml, cucharada = 15 ml, cucharadita = 5 ml, vaso común = 250 ml). Sé honesto con la incertidumbre: si la foto no permite estimar, dilo y pide una mejor foto.
+Responde SOLO JSON: {"objeto":string,"ml_min":number,"ml_max":number,"ml_estimado":number,"equivale":{"tazas":string,"cucharadas":string,"cucharaditas":string},"gramos":[{"ingrediente":string,"g":number}],"confianza":"alta"|"media"|"baja","como_lo_calcule":string 1-2 frases,"consejo":string corto para medir mejor}`, { images:[MEASF] });
+    if(!d || !(Number(d.ml_estimado) > 0)) throw {code:"invalid_json"};
+    const e = d.equivale || {};
+    $("#measOut").innerHTML = `<div class="measres"><span class="label">${esc(d.objeto||"Utensilio")}</span>
+      <p class="measbig">≈ ${Math.round(Number(d.ml_estimado))} ml <small class="muted">(${Math.round(Number(d.ml_min)||0)}–${Math.round(Number(d.ml_max)||0)} ml)</small></p>
+      <p><b>Equivale a:</b> ${esc(e.tazas||"—")} de taza · ${esc(e.cucharadas||"—")} cucharadas · ${esc(e.cucharaditas||"—")} cucharaditas</p>
+      ${(d.gramos||[]).length ? `<table class="meastable"><tr><th>Ingrediente</th><th>Gramos aprox.</th></tr>${d.gramos.map(g=>`<tr><td>${esc(g.ingrediente)}</td><td>${Math.round(Number(g.g)||0)} g</td></tr>`).join("")}</table>` : ""}
+      <p class="muted small"><b>Confianza ${esc(d.confianza||"media")}.</b> ${esc(d.como_lo_calcule||"")}</p>
+      ${d.consejo ? `<p class="muted small">💡 ${esc(d.consejo)}</p>` : ""}
+      <p class="muted small">Es una estimación por foto; para pesos exactos usa balanza.</p></div>`;
+  }catch(e){ toast(errMsg(e)); }
+  finally{ btn.disabled = false; btn.textContent = "Calcular medida"; }
+}
+$("#measGo").onclick = measure;
+
 /* ---------- Navegación ---------- */
-const VIEWS = ["analizar","recetario","semana","eventos"];
+const VIEWS = ["analizar","recetario","semana","medidas","eventos"];
 function route(){
   if(/^#cumpli=/.test(location.hash)) ingestCumpli();
   if(pendingCumpliRecipe){ const r = pendingCumpliRecipe; pendingCumpliRecipe = null; setTimeout(() => cumpliRecipe(r), 400); }
