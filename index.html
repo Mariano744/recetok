@@ -232,6 +232,7 @@ ul.ing label{display:flex;gap:10px;align-items:center;cursor:pointer;min-width:0
 .measure{padding:16px}.measin{width:100%;margin-top:10px;border:1px solid var(--line);border-radius:12px;padding:10px;font:inherit;background:var(--surface);color:inherit}
 .measure .btn.primary#measGo{margin-top:12px}
 .measres{margin-top:14px;border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:var(--surface)}
+.calrow{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0}.calrow label{display:grid;gap:4px;font-size:.9rem}.calrow input{width:96px;border:1px solid var(--line);border-radius:10px;padding:8px;font:inherit;background:var(--surface);color:inherit}
 .measbig{font-size:1.6rem;font-weight:700;margin:2px 0 8px}
 .meastable{width:100%;border-collapse:collapse;margin:8px 0}.meastable td,.meastable th{padding:6px 4px;border-bottom:1px solid var(--line);text-align:left}
 .diagres{margin-top:14px;border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:var(--surface)}
@@ -848,6 +849,17 @@ img.foto.broken{visibility:hidden}
     <div class="vhead">
       <div class="sh"><span class="eyebrow">Con una foto</span><h2 class="vtitle">¿Cuánto cabe?</h2></div>
     </div>
+    <div class="card measure" id="calCard">
+      <span class="eyebrow">Mis medidas</span>
+      <p class="muted">Todas tus recetas (las guardadas y las nuevas) se muestran con <b>tu</b> taza y tus cucharas. Mídelas con una foto abajo o escribe los ml.</p>
+      <div class="calrow">
+        <label>Mi taza<input type="number" id="calTaza" min="50" max="1000" step="5" inputmode="numeric"> ml</label>
+        <label>Mi cucharada<input type="number" id="calCda" min="5" max="40" step="1" inputmode="numeric"> ml</label>
+        <label>Mi cucharadita<input type="number" id="calCdta" min="1" max="15" step="1" inputmode="numeric"> ml</label>
+      </div>
+      <button class="btn small" id="calReset">Volver a medidas estándar (240 / 15 / 5)</button>
+      <p class="muted small" id="calNote"></p>
+    </div>
     <div class="card measure">
       <p class="muted">Fotografía una taza, vaso, cuchara, plato, tazón u olla (de preferencia vacío y desde arriba o de lado) y la IA te dice de qué tamaño es: cuántos ml, gramos y a cuántas tazas o cucharadas equivale.</p>
       <div class="diagrow">
@@ -1180,13 +1192,23 @@ function fmtQty(v){
   if(!g) return String(w||"¼");
   return w ? `${w} ${g}` : g;
 }
+/* Mis medidas: las recetas se escriben con taza=240 ml, cda=15 ml, cdta=5 ml; aquí se adaptan a TU taza y cucharas */
+const STD = { taza:240, cda:15, cdta:5 };
+const CAL = Object.assign({}, STD, lsGet("recetok_cal", {}));
+const calOn = () => Object.keys(STD).some(k => Math.abs(CAL[k] - STD[k]) > .5);
+function calK(rest){
+  const w = norm(rest.replace(/^\s*(?:-|–|a)\s*\d+(?:[.,]\d+)?/, "")).split(" ").find(Boolean) || "";
+  const k = /^tazas?$/.test(w) ? "taza" : /^(cdas?|cucharadas?)$/.test(w) ? "cda" : /^(cdtas?|cucharaditas?)$/.test(w) ? "cdta" : "";
+  return k ? STD[k] / CAL[k] : 1;
+}
 function scaleQty(str, f){
-  if(f===1) return str;
+  if(f===1 && !calOn()) return str;
   const p = parseLead(str); if(!p) return str;
+  const f0 = f; f = f * calK(p.rest);
   let v = p.v*f, rest = p.rest;
   const rg = rest.match(/^(\s*(?:-|–|a)\s*)(\d+(?:[.,]\d+)?)(.*)$/);          // rangos: "2-3 dientes"
-  if(rg) rest = rg[1] + fmtQty(parseFloat(rg[2].replace(",", "."))*f) + scaleText(rg[3], f);
-  else rest = scaleText(rest, f);                                                 // medidas entre paréntesis: "(500 ml)"
+  if(rg) rest = rg[1] + fmtQty(parseFloat(rg[2].replace(",", "."))*f) + scaleText(rg[3], f0);
+  else rest = scaleText(rest, f0);                                                 // medidas entre paréntesis: "(500 ml)"
   if(/^\s*(huevos?|unidades?|dientes?|latas?|rodajas?|piezas?)\b/i.test(rest)) v = Math.max(1, Math.round(v));   // cosas enteras
   if(v <= 1 && !rg) rest = rest.replace(/^(\s*)(tazas|latas|dientes|cdas|cdtas|unidades|atados|rodajas|piezas|huevos)\b/i, (m, sp, w) => sp + (w.toLowerCase()==="unidades" ? "unidad" : w.toLowerCase()==="dientes" ? "diente" : w.slice(0,-1)));
   if(v > 1 && !rg) rest = rest.replace(/^(\s*)(taza|lata|diente|cda|cdta|unidad|atado|rodaja|pieza|huevo)\b/i, "$1$2s");
@@ -1198,7 +1220,8 @@ function scaleQty(str, f){
 /* Escala las cantidades que aparecen escritas dentro de un paso (no toca tiempos ni temperaturas) */
 const STEP_QTY = /(\d+(?:[.,]\d+)?(?:\s*\/\s*\d+)?|[½¼¾⅓⅔])(\s*(?:g|gr|grs|gramos?|kg|kilos?|ml|l|lt|litros?|tazas?|cdas?|cucharadas?|cdtas?|cucharaditas?|dientes?|latas?|atados?|unidades?|unid|huevos?|piezas?|rodajas?|lonjas?|rebanadas?)\b)/gi;
 function scaleText(txt, f){
-  if(!f || f === 1 || !txt) return txt;
+  if(!txt || ((!f || f === 1) && !calOn())) return txt;
+  f = f || 1;
   return txt.replace(STEP_QTY, (m, n, u) => { const out = scaleQty(n + u, f); return out === n + u ? m : out; });
 }
 const stepFac = r => S.servings / (Number(r?.porciones) || 4);
@@ -2215,7 +2238,7 @@ async function measure(){
 Identifícalo y estima su CAPACIDAD cuando está lleno a ras. ${ref ? "Referencia de tamaño dada por el usuario: " + ref + "." : "Usa objetos de la foto (manos, cubiertos, mesa) como referencia de escala si los hay."}
 ${what ? "El usuario quiere medir: " + what + ". Da los gramos de ese ingrediente." : "Para los gramos, da los de agua y de arroz, harina de trigo y azúcar."}
 Compara con medidas estándar (taza = 240 ml, cucharada = 15 ml, cucharadita = 5 ml, vaso común = 250 ml). Sé honesto con la incertidumbre: si la foto no permite estimar, dilo y pide una mejor foto.
-Responde SOLO JSON: {"objeto":string,"ml_min":number,"ml_max":number,"ml_estimado":number,"equivale":{"tazas":string,"cucharadas":string,"cucharaditas":string},"gramos":[{"ingrediente":string,"g":number}],"confianza":"alta"|"media"|"baja","como_lo_calcule":string 1-2 frases,"consejo":string corto para medir mejor}`, { images:[MEASF] });
+Responde SOLO JSON: {"objeto":string,"tipo":"taza"|"cucharada"|"cucharadita"|"otro","ml_min":number,"ml_max":number,"ml_estimado":number,"equivale":{"tazas":string,"cucharadas":string,"cucharaditas":string},"gramos":[{"ingrediente":string,"g":number}],"confianza":"alta"|"media"|"baja","como_lo_calcule":string 1-2 frases,"consejo":string corto para medir mejor}`, { images:[MEASF] });
     if(!d || !(Number(d.ml_estimado) > 0)) throw {code:"invalid_json"};
     const e = d.equivale || {};
     $("#measOut").innerHTML = `<div class="measres"><span class="label">${esc(d.objeto||"Utensilio")}</span>
@@ -2224,11 +2247,27 @@ Responde SOLO JSON: {"objeto":string,"ml_min":number,"ml_max":number,"ml_estimad
       ${(d.gramos||[]).length ? `<table class="meastable"><tr><th>Ingrediente</th><th>Gramos aprox.</th></tr>${d.gramos.map(g=>`<tr><td>${esc(g.ingrediente)}</td><td>${Math.round(Number(g.g)||0)} g</td></tr>`).join("")}</table>` : ""}
       <p class="muted small"><b>Confianza ${esc(d.confianza||"media")}.</b> ${esc(d.como_lo_calcule||"")}</p>
       ${d.consejo ? `<p class="muted small">💡 ${esc(d.consejo)}</p>` : ""}
+      ${{taza:["taza","Mi taza"],cucharada:["cda","Mi cucharada"],cucharadita:["cdta","Mi cucharadita"]}[d.tipo] ? `<button class="btn primary small" id="calUse">Usar como ${{taza:"mi taza",cucharada:"mi cucharada",cucharadita:"mi cucharadita"}[d.tipo]} (${Math.round(Number(d.ml_estimado))} ml)</button>` : ""}
       <p class="muted small">Es una estimación por foto; para pesos exactos usa balanza.</p></div>`;
+    const key = {taza:"taza",cucharada:"cda",cucharadita:"cdta"}[d.tipo];
+    if($("#calUse")) $("#calUse").onclick = () => { setCal(key, Math.round(Number(d.ml_estimado))); toast(IC.check + " Recetas adaptadas a tu medida"); };
   }catch(e){ toast(errMsg(e)); }
   finally{ btn.disabled = false; btn.textContent = "Calcular medida"; }
 }
 $("#measGo").onclick = measure;
+const CALIDS = { taza:"#calTaza", cda:"#calCda", cdta:"#calCdta" };
+function drawCal(){
+  for(const k in CALIDS) if(document.activeElement !== $(CALIDS[k])) $(CALIDS[k]).value = CAL[k];
+  $("#calNote").textContent = calOn() ? `Ejemplo: “1 taza” de la receta = ${fmtQty(STD.taza/CAL.taza)} de tu taza.` : "Usando medidas estándar.";
+}
+function setCal(k, ml){
+  ml = Number(ml); if(!(ml > 0)) return;
+  CAL[k] = ml; lsSet("recetok_cal", CAL); drawCal();
+  if(S.orig) render();
+}
+for(const k in CALIDS) $(CALIDS[k]).addEventListener("change", e => setCal(k, e.target.value));
+$("#calReset").onclick = () => { Object.assign(CAL, STD); lsSet("recetok_cal", CAL); drawCal(); if(S.orig) render(); toast("Medidas estándar"); };
+drawCal();
 
 /* ---------- Navegación ---------- */
 const VIEWS = ["analizar","recetario","semana","medidas","eventos"];
