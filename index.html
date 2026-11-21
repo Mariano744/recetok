@@ -782,6 +782,32 @@ img.foto.broken{visibility:hidden}
 .pitem img.foto{object-fit:cover;padding:0}
 @keyframes fshim{to{background-position:-250% 0}}
 @media (prefers-reduced-motion:reduce){.pic.photo,.rpic{animation:none}}
+
+/* Barra de pestañas abajo en el celular */
+@media (max-width:640px){
+  .appbar{backdrop-filter:none;-webkit-backdrop-filter:none;background:var(--surface)}
+  .tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;margin:0;border:0;border-top:1px solid var(--line);border-radius:0;gap:0;
+    background:color-mix(in srgb,var(--surface) 96%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+    padding:4px max(4px,env(safe-area-inset-left,0px)) calc(4px + env(safe-area-inset-bottom,0px));justify-content:space-around}
+  .tab{flex:1;flex-direction:column;gap:2px;padding:6px 2px;border-radius:10px;position:relative;min-width:0}
+  .tab .i{display:block;width:22px;height:22px}
+  .tab span{display:block;font-size:.68rem}
+  .tab[aria-current="page"]{box-shadow:none;background:var(--brand-soft)}
+  .tabcount{position:absolute;top:2px;left:calc(50% + 6px)}
+  .appname{display:inline}
+  body{padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))}
+  .toast{bottom:calc(86px + env(safe-area-inset-bottom,0px))}
+}
+.chip.more{border-style:dashed;color:var(--brand);font-weight:600}
+.calnote{margin:8px 0 0;font-size:.82rem;color:var(--muted)}.calnote a{color:var(--brand);font-weight:600}
+.mlin{display:flex;align-items:center;gap:6px}
+.conv{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.conv label{display:grid;gap:4px;font-size:.9rem}.conv .full{grid-column:1/-1}
+.conv input,.conv select{width:100%;border:1px solid var(--line);border-radius:10px;padding:9px;font:inherit;background:var(--surface);color:inherit}
+.convout{margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+.convout div{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--bg)}
+.convout b{display:block;font:700 1.15rem var(--f-num,inherit)}.convout span{font-size:.8rem;color:var(--muted)}
+.measure + .measure{margin-top:16px}.measure label.btn{margin-left:0}
 </style>
 </head>
 <body>
@@ -849,17 +875,6 @@ img.foto.broken{visibility:hidden}
     <div class="vhead">
       <div class="sh"><span class="eyebrow">Con una foto</span><h2 class="vtitle">¿Cuánto cabe?</h2></div>
     </div>
-    <div class="card measure" id="calCard">
-      <span class="eyebrow">Mis medidas</span>
-      <p class="muted">Todas tus recetas (las guardadas y las nuevas) se muestran con <b>tu</b> taza y tus cucharas. Mídelas con una foto abajo o escribe los ml.</p>
-      <div class="calrow">
-        <label>Mi taza<input type="number" id="calTaza" min="50" max="1000" step="5" inputmode="numeric"> ml</label>
-        <label>Mi cucharada<input type="number" id="calCda" min="5" max="40" step="1" inputmode="numeric"> ml</label>
-        <label>Mi cucharadita<input type="number" id="calCdta" min="1" max="15" step="1" inputmode="numeric"> ml</label>
-      </div>
-      <button class="btn small" id="calReset">Volver a medidas estándar (240 / 15 / 5)</button>
-      <p class="muted small" id="calNote"></p>
-    </div>
     <div class="card measure">
       <p class="muted">Fotografía una taza, vaso, cuchara, plato, tazón u olla (de preferencia vacío y desde arriba o de lado) y la IA te dice de qué tamaño es: cuántos ml, gramos y a cuántas tazas o cucharadas equivale.</p>
       <div class="diagrow">
@@ -871,6 +886,27 @@ img.foto.broken{visibility:hidden}
       <input id="measRef" type="text" class="measin" placeholder="Referencia de tamaño: ej. “la taza mide 9 cm de alto” (opcional)" autocomplete="off">
       <button class="btn primary" id="measGo">Calcular medida</button>
       <div id="measOut" aria-live="polite"></div>
+    </div>
+    <div class="card measure" id="calCard">
+      <span class="eyebrow">Mis medidas</span>
+      <p class="muted">Todas tus recetas (las guardadas y las nuevas) se muestran con <b>tu</b> taza y tus cucharas. Mídelas con una foto arriba o escribe los ml.</p>
+      <div class="calrow">
+        <label>Mi taza<span class="mlin"><input type="number" id="calTaza" min="50" max="1000" step="5" inputmode="numeric"> ml</span></label>
+        <label>Mi cucharada<span class="mlin"><input type="number" id="calCda" min="5" max="40" step="1" inputmode="numeric"> ml</span></label>
+        <label>Mi cucharadita<span class="mlin"><input type="number" id="calCdta" min="1" max="15" step="1" inputmode="numeric"> ml</span></label>
+      </div>
+      <button class="btn small" id="calReset">Volver a medidas estándar (240 / 15 / 5)</button>
+      <p class="muted small" id="calNote"></p>
+    </div>
+    <div class="card measure" id="convCard">
+      <span class="eyebrow">Conversor rápido · sin internet</span>
+      <div class="conv">
+        <label>Cantidad<input id="cvQ" type="text" inputmode="decimal" value="1" placeholder="Ej: 1 ½"></label>
+        <label>Unidad<select id="cvU"><option value="taza">taza</option><option value="cda">cucharada</option><option value="cdta">cucharadita</option><option value="ml">ml</option><option value="g">gramos</option></select></label>
+        <label class="full">Ingrediente<select id="cvI"></select></label>
+      </div>
+      <div class="convout" id="cvOut"></div>
+      <p class="muted small">Las tazas y cucharas usan <b>tus</b> medidas de arriba. Pesos aproximados según la densidad de cada ingrediente.</p>
     </div>
   </section>
 
@@ -1242,6 +1278,7 @@ function eqText(i, fac){
   }
   return "";
 }
+const measureGuide = () => calOn() ? [["1 taza de la receta","≈ 240 ml = " + fmtQty(240/CAL.taza) + " de tu taza (" + CAL.taza + " ml)"], ["1 cda de la receta","≈ 15 ml = " + fmtQty(15/CAL.cda) + " de tu cuchara"], ...MEASURE_GUIDE.slice(2)] : MEASURE_GUIDE;
 const MEASURE_GUIDE = [
   ["1 taza","≈ 240 ml · un vaso grande"],["1 cda (cucharada)","≈ 15 ml · cuchara de sopa"],["1 cdta (cucharadita)","≈ 5 ml · cuchara de postre"],
   ["1 huevo","≈ 50 g · un huevo mediano"],["1 diente de ajo","≈ 5 g · una pepita, no la cabeza entera"],["1 puñado","≈ 30 g · lo que cabe en una mano"],
@@ -1406,6 +1443,7 @@ function render(){
         <button id="sPlus" aria-label="Más porciones">+</button>
       </div>
     </div>
+    ${calOn() ? `<p class="calnote">📏 Medidas adaptadas a tu taza de ${CAL.taza} ml y tu cuchara de ${CAL.cda} ml · <a href="#medidas">cambiar</a></p>` : ""}
     <div class="unitseg" role="group" aria-label="Unidades">
       <button data-u="casera" aria-pressed="${S.units==="casera"}">Caseras</button>
       <button data-u="exacta" aria-pressed="${S.units==="exacta"}">Exactas (g/ml)</button>
@@ -1419,7 +1457,7 @@ function render(){
         <div class="subpop" hidden></div>
       </li>`;}).join("")}</ul>
     <details class="mguide"><summary>¿Cuánto es una taza, una cda, un huevo…?</summary>
-      <ul>${MEASURE_GUIDE.map(([a,b])=>`<li><b>${a}</b><span>${b}</span></li>`).join("")}</ul></details>
+      <ul>${measureGuide().map(([a,b])=>`<li><b>${a}</b><span>${b}</span></li>`).join("")}</ul></details>
     <div class="ingfoot">
       ${priceTotal ? `<span class="cost">${IC.coin} Costo aprox. <b>${soles(priceTotal*fac)}</b> para ${S.servings} porciones</span>` : ""}
       <button class="btn small" id="copyList">${IC.copy} Copiar lista</button>
@@ -2172,7 +2210,9 @@ $("#evList").addEventListener("click", ev => {
 /* ---------- Crea tu receta: la IA arma una receta a pedido (sin restricciones + saludable) ---------- */
 const GEN_IDEAS = ["Algo con pollo en 30 minutos","Postre fácil sin horno","Cena para 2 con lo básico","Loncheras para la semana","Algo criollo y picante","Desayuno alto en proteína","Pasta cremosa","Snack para ver el partido"];
 function drawGenChips(){
-  $("#genChips").innerHTML = GEN_IDEAS.map((t,i) => `<button type="button" class="chip" data-i="${i}">${esc(t)}</button>`).join("");
+  const all = $("#genChips").dataset.all === "1", list = all ? GEN_IDEAS : GEN_IDEAS.slice(0, 5);
+  $("#genChips").innerHTML = list.map((t,i) => `<button type="button" class="chip" data-i="${i}">${esc(t)}</button>`).join("")
+    + (GEN_IDEAS.length > 5 ? `<button type="button" class="chip more" data-more>${all ? "Ver menos" : "Más ideas (" + (GEN_IDEAS.length - 5) + ")"}</button>` : "");
 }
 async function genRecipe(q){
   q = clip(q, 200); if(!q){ $("#genIn").focus(); return; }
@@ -2194,7 +2234,7 @@ Esta es la versión SIN RESTRICCIONES: prioriza el sabor y la textura al máximo
   }catch(e){ $("#status").innerHTML = `<span class="err">${errMsg(e)}</span>`; }
   finally{ btns.forEach(b => b.disabled = false); }
 }
-$("#genChips").addEventListener("click", e => { const b = e.target.closest("[data-i]"); if(b){ $("#genIn").value = GEN_IDEAS[+b.dataset.i]; genRecipe(GEN_IDEAS[+b.dataset.i]); } });
+$("#genChips").addEventListener("click", e => { if(e.target.closest("[data-more]")){ const c = $("#genChips"); c.dataset.all = c.dataset.all === "1" ? "" : "1"; drawGenChips(); return; } const b = e.target.closest("[data-i]"); if(b){ $("#genIn").value = GEN_IDEAS[+b.dataset.i]; genRecipe(GEN_IDEAS[+b.dataset.i]); } });
 $("#genForm").addEventListener("submit", e => { e.preventDefault(); genRecipe($("#genIn").value); });
 drawGenChips();
 
@@ -2204,7 +2244,9 @@ const COPY_LIST = [["Raising Cane's","Chicken fingers con Cane's Sauce"],["Raisi
   ["Shake Shack","ShackBurger"],["Five Guys","Papas fritas estilo cajún"],["Panda Express","Orange Chicken"],["Olive Garden","Zuppa Toscana"],["Olive Garden","Breadsticks"],
   ["Cinnabon","Rollo de canela"],["Starbucks","Frappuccino de caramelo"],["Texas Roadhouse","Panecillos con mantequilla de miel"],["Subway","Sándwich italiano BMT"],["Domino's","Pizza de pepperoni"]];
 function drawCopyChips(){
-  $("#ccChips").innerHTML = COPY_LIST.map(([r,d],i) => `<button type="button" class="chip" data-i="${i}">${esc(r)} <small>${esc(d)}</small></button>`).join("");
+  const all = $("#ccChips").dataset.all === "1", list = all ? COPY_LIST : COPY_LIST.slice(0, 6);
+  $("#ccChips").innerHTML = list.map(([r,d],i) => `<button type="button" class="chip" data-i="${i}">${esc(r)} <small>${esc(d)}</small></button>`).join("")
+    + (COPY_LIST.length > 6 ? `<button type="button" class="chip more" data-more>${all ? "Ver menos" : "Ver los " + COPY_LIST.length + " restaurantes"}</button>` : "");
 }
 async function copyRecipe(q){
   q = clip(q, 90); if(!q) return;
@@ -2221,7 +2263,7 @@ Reproduce lo más fielmente posible el sabor, la textura y la presentación del 
   }catch(e){ $("#status").innerHTML = `<span class="err">${errMsg(e)}</span>`; }
   finally{ btns.forEach(b => b.disabled = false); }
 }
-$("#ccChips").addEventListener("click", e => { const b = e.target.closest("[data-i]"); if(b){ const [r,d] = COPY_LIST[+b.dataset.i]; copyRecipe(`${r} — ${d}`); } });
+$("#ccChips").addEventListener("click", e => { if(e.target.closest("[data-more]")){ const c = $("#ccChips"); c.dataset.all = c.dataset.all === "1" ? "" : "1"; drawCopyChips(); return; } const b = e.target.closest("[data-i]"); if(b){ const [r,d] = COPY_LIST[+b.dataset.i]; copyRecipe(`${r} — ${d}`); } });
 $("#ccForm").addEventListener("submit", e => { e.preventDefault(); copyRecipe($("#ccIn").value); });
 drawCopyChips();
 
@@ -2258,6 +2300,7 @@ $("#measGo").onclick = measure;
 const CALIDS = { taza:"#calTaza", cda:"#calCda", cdta:"#calCdta" };
 function drawCal(){
   for(const k in CALIDS) if(document.activeElement !== $(CALIDS[k])) $(CALIDS[k]).value = CAL[k];
+  drawConv();
   $("#calNote").textContent = calOn() ? `Ejemplo: “1 taza” de la receta = ${fmtQty(STD.taza/CAL.taza)} de tu taza.` : "Usando medidas estándar.";
 }
 function setCal(k, ml){
@@ -2267,6 +2310,19 @@ function setCal(k, ml){
 }
 for(const k in CALIDS) $(CALIDS[k]).addEventListener("change", e => setCal(k, e.target.value));
 $("#calReset").onclick = () => { Object.assign(CAL, STD); lsSet("recetok_cal", CAL); drawCal(); if(S.orig) render(); toast("Medidas estándar"); };
+/* Conversor sin internet: densidad aproximada en g por ml */
+const DENS = [["Agua",1],["Leche",1.03],["Aceite",.92],["Mantequilla derretida",.96],["Miel",1.42],["Harina de trigo",.53],["Azúcar blanca",.85],["Azúcar rubia",.82],["Azúcar en polvo",.5],["Arroz crudo",.82],["Quinua cruda",.72],["Avena en hojuelas",.38],["Sal fina",1.2],["Cacao en polvo",.42],["Maicena",.54],["Lentejas crudas",.8],["Queso rallado",.42],["Yogur",1.04]];
+$("#cvI").innerHTML = DENS.map(([n],i) => `<option value="${i}">${n}</option>`).join("");
+function drawConv(){
+  const p = parseLead($("#cvQ").value || ""), q = p ? p.v : 0, u = $("#cvU").value, d = DENS[+$("#cvI").value || 0][1];
+  const ml = u === "ml" ? q : u === "g" ? q / d : q * CAL[u];
+  const box = (v, t) => `<div><b>${v}</b><span>${t}</span></div>`;
+  $("#cvOut").innerHTML = !(q > 0) ? `<p class="muted small">Escribe una cantidad.</p>` :
+    box(fmtUnit(ml, "ml"), "volumen") + box(fmtUnit(ml * d, "g"), "peso") +
+    box(fmtQty(ml / CAL.taza), calOn() ? "de tu taza" : "tazas") + box(fmtQty(ml / CAL.cda), calOn() ? "de tu cuchara" : "cucharadas") +
+    (calOn() ? box(fmtQty(ml / 240), "tazas estándar") : box(fmtQty(ml / CAL.cdta), "cucharaditas"));
+}
+["#cvQ","#cvU","#cvI"].forEach(id => $(id).addEventListener("input", drawConv));
 drawCal();
 
 /* ---------- Navegación ---------- */
