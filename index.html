@@ -929,6 +929,13 @@ ol.steps li .mins{display:inline-block;margin-left:8px;font:500 .72rem var(--f-n
 .gk-tim img{position:relative;max-width:100%;max-height:100%;object-fit:contain;filter:drop-shadow(0 5px 5px rgba(0,0,0,.3));pointer-events:none}
 .gk-tim img.raw{width:100%;height:100%;object-fit:cover;border-radius:50%;box-shadow:0 0 0 3px #fff,0 4px 10px rgba(0,0,0,.25)}
 .gk-tim img.wait,.gk-tim img.broken{opacity:0}
+.gk-tim img.soft{filter:none}
+.gk-pc.soft{filter:saturate(1.05)}
+.gk-pc.bit.soft{clip-path:none!important;-webkit-mask-image:radial-gradient(var(--br) var(--br) at var(--bx) var(--by),#000 45%,transparent 100%);mask-image:radial-gradient(var(--br) var(--br) at var(--bx) var(--by),#000 45%,transparent 100%)}
+.gk-tim.k-liq:has(img.broken)::before{animation:none;inset:4%;background:radial-gradient(circle at 50% 52%,var(--c) 0 47%,transparent 48.5%),radial-gradient(circle at 38% 30%,#fff 0 38%,#eef1f2 56%,#cfd6da 63%,rgba(0,0,0,.14) 66%,transparent 69%)}
+.gk-tim.k-pow:has(img.broken)::before{animation:none;inset:4%;background:radial-gradient(circle at 50% 50%,var(--c) 0 22%,transparent 38%),radial-gradient(circle at 38% 30%,#fff 0 38%,#eef1f2 56%,#cfd6da 63%,rgba(0,0,0,.14) 66%,transparent 69%)}
+.gk-tim.k-liq:has(img.broken) .gk-ini,.gk-tim.k-pow:has(img.broken) .gk-ini{opacity:0}
+.gk-cred{font-size:.78rem;color:var(--muted)}.gk-cred a{color:inherit}.gk-cred summary{cursor:pointer}.gk-cred ul{margin:6px 0 0;padding-left:18px;display:grid;gap:3px}
 .gk-tim .gk-ini{position:absolute;inset:0;display:grid;place-items:center;font:700 1.5rem var(--f-display);color:var(--brand);opacity:0}
 .gk-tim:has(img.broken) .gk-ini{opacity:1;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.35)}.gk-tim:has(img.wait) .gk-ini{opacity:.55}
 .gk-tok.in{opacity:.42;cursor:default}
@@ -2746,11 +2753,23 @@ const PIC = { done:new Set(), bad:new Set(), busyU:new Set(), q:[], busy:0, max:
   pump(){
     while(this.busy < this.max && this.q.length){
       const u = this.q.shift(); this.busy++; this.busyU.add(u);
-      const im = new Image(), fin = ok => { this.busy--; this.busyU.delete(u);
+      const cut = /[?&]t=cut(&|$)/.test(u);
+      const im = new Image(), fin = (ok, meta) => { this.busy--; this.busyU.delete(u);
         (ok ? this.done : this.bad).add(u);
-        if(/[?&]t=cut(&|$)/.test(u)) Cut.make(u, ok ? im : null);
+        if(cut) Cut.make(u, ok ? im : null, meta);
         document.querySelectorAll("img[data-src]").forEach(e => { if(e.dataset.src !== u) return; if(ok){ e.src = u; e.classList.remove("wait"); } else e.classList.add("broken"); e.removeAttribute("data-src"); });
         this.pump(); };
+      if(cut){                                         // ingredientes: se lee dónde está el ingrediente en la foto y de quién es
+        let code = ""; try{ code = localStorage.getItem("recetok_code") || ""; }catch{}
+        fetch(u, { headers: code ? { "x-app-code": code } : {} }).then(async r => {
+          if(!r.ok) throw 0;
+          let credit = ""; try{ credit = decodeURIComponent(r.headers.get("X-Foto-Credito") || ""); }catch{}
+          const meta = { box: r.headers.get("X-Foto-Box") || "", liso: r.headers.get("X-Foto-Liso") || "", credit };
+          const obj = URL.createObjectURL(await r.blob());
+          im.onload = () => { fin(true, meta); URL.revokeObjectURL(obj); }; im.onerror = () => { fin(false); URL.revokeObjectURL(obj); }; im.src = obj;
+        }).catch(() => fin(false));
+        continue;
+      }
       im.onload = () => fin(true); im.onerror = () => fin(false); im.src = u;
     }
   },
@@ -2762,30 +2781,50 @@ const BLANK = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAI
 const c255 = v => v < 0 ? 0 : v > 255 ? 255 : v | 0;
 const Cut = { m:new Map(),
   get(u){ return u ? this.m.get(u) || null : null; },
-  make(u, im){
+  make(u, im, meta){
     if(this.m.has(u)) return;
     let v = { bad:true };
-    if(im) try{ v = this.process(im); }catch{ v = { src:u, raw:true, c:"" }; }
+    if(im) try{ v = this.process(im, meta || {}); }catch{ v = { src:u, raw:true, c:"" }; }
+    if(meta?.credit) v.credit = meta.credit;
     this.m.set(u, v);
     document.querySelectorAll("img[data-cut]").forEach(e => { if(e.dataset.cut !== u) return;
       if(v.bad){ e.classList.remove("wait"); e.classList.add("broken"); return; }
-      e.src = v.src; e.classList.remove("wait"); e.classList.toggle("raw", !!v.raw); });
+      e.src = v.src; e.classList.remove("wait"); e.classList.toggle("raw", !!v.raw); e.classList.toggle("soft", !!v.soft); });
   },
   tag(u, cls="", alt=""){
     const v = this.get(u);
-    return `<img data-cut="${u||""}" src="${v && !v.bad ? v.src : BLANK}" class="${cls}${!v ? " wait" : v.bad ? " broken" : v.raw ? " raw" : ""}" alt="${esc(alt)}" draggable="false">`;
+    return `<img data-cut="${u||""}" src="${v && !v.bad ? v.src : BLANK}" class="${cls}${!v ? " wait" : v.bad ? " broken" : v.raw ? " raw" : v.soft ? " soft" : ""}" alt="${esc(alt)}" draggable="false">`;
+  },
+  soft(cv, x, img, d, w, h){                           // fondo con cosas: la foto real queda con bordes suaves, como un trozo
+    for(let j = 0; j < h; j++) for(let i = 0; i < w; i++){
+      const ex = (i + .5 - w/2) / (w/2), ey = (j + .5 - h/2) / (h/2), r = Math.sqrt(ex*ex + ey*ey), t = Math.max(0, Math.min(1, (r - .62) / .38));
+      d[(j*w+i)*4+3] = Math.round(d[(j*w+i)*4+3] * (1 - t*t*(3 - 2*t)));
+    }
+    x.putImageData(img, 0, 0);
+    return { src: cv.toDataURL("image/png"), soft:true, c: this.avg(d, w, h) };
   },
   avg(d, w, h){
     let r = 0, g = 0, b = 0, n = 0;
     for(let j = h >> 2; j < h - (h >> 2); j += 2) for(let i = w >> 2; i < w - (w >> 2); i += 2){ const k = (j*w+i)*4; if(d[k+3] > 200){ r += d[k]; g += d[k+1]; b += d[k+2]; n++; } }
     return n ? `rgb(${r/n|0},${g/n|0},${b/n|0})` : "";
   },
-  process(im){
-    const sc = Math.min(1, 360 / Math.max(im.naturalWidth, im.naturalHeight));
-    const w = Math.max(1, Math.round(im.naturalWidth * sc)), h = Math.max(1, Math.round(im.naturalHeight * sc)), N = w*h;
+  process(im, meta = {}){
+    let sx = 0, sy = 0, sw = im.naturalWidth, sh = im.naturalHeight, fills = false;
+    const bx = String(meta.box || "").split(",").map(Number);              // [ymin, xmin, ymax, xmax] en 0-1000: solo la zona del ingrediente
+    if(bx.length === 4 && bx.every(Number.isFinite)){
+      let [y0, x0, y1, x1] = bx.map(v => v / 1000);
+      fills = (y1 - y0) * (x1 - x0) >= .85;                               // el alimento llena la foto (granos, carne molida…): va con borde suave
+      if(y1 - y0 > .08 && x1 - x0 > .08 && (y1 - y0) * (x1 - x0) < .92){
+        const my = (y1 - y0) * .07, mx = (x1 - x0) * .07;
+        y0 = Math.max(0, y0 - my); x0 = Math.max(0, x0 - mx); y1 = Math.min(1, y1 + my); x1 = Math.min(1, x1 + mx);
+        sx = x0 * im.naturalWidth; sy = y0 * im.naturalHeight; sw = (x1 - x0) * im.naturalWidth; sh = (y1 - y0) * im.naturalHeight;
+      }
+    }
+    const sc = Math.min(1, 360 / Math.max(sw, sh));
+    const w = Math.max(1, Math.round(sw * sc)), h = Math.max(1, Math.round(sh * sc)), N = w*h;
     const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
-    const x = cv.getContext("2d", { willReadFrequently:true }); x.drawImage(im, 0, 0, w, h);
-    const img = x.getImageData(0, 0, w, h), d = img.data;
+    const x = cv.getContext("2d", { willReadFrequently:true }); x.drawImage(im, sx, sy, sw, sh, 0, 0, w, h);
+    const img = x.getImageData(0, 0, w, h), d = img.data, orig = new Uint8ClampedArray(d);
     const edge = []; for(let i = 0; i < w; i++) edge.push(i, (h-1)*w + i); for(let j = 1; j < h-1; j++) edge.push(j*w, j*w + w-1);
     let clear = 0; for(const p of edge) if(d[p*4+3] < 30) clear++;
     if(clear / edge.length < .6){                                   // fondo opaco: se recorta
@@ -2793,7 +2832,8 @@ const Cut = { m:new Map(),
       const br = med(edge.map(p => d[p*4])), bg = med(edge.map(p => d[p*4+1])), bb = med(edge.map(p => d[p*4+2]));
       const dist = new Uint8Array(N); for(let p = 0; p < N; p++){ const k = p*4; dist[p] = Math.min(255, Math.max(Math.abs(d[k]-br), Math.abs(d[k+1]-bg), Math.abs(d[k+2]-bb))); }
       let near = 0; for(const p of edge) if(dist[p] < 26) near++;
-      if(br + bg + bb < 600 || near / edge.length < .65) return { src: cv.toDataURL("image/jpeg", .86), raw:true, c: this.avg(d, w, h) };
+      const plain = !fills && (meta.liso === "1" ? br + bg + bb >= 500 && near / edge.length >= .45 : br + bg + bb >= 600 && near / edge.length >= .65);
+      if(!plain) return this.soft(cv, x, img, d, w, h);
       const T1 = 22, T2 = 62, T3 = 72, Lb = (br + bg + bb) / 3, seen = new Uint8Array(N), q = new Int32Array(N); let qh = 0, qt = 0;
       for(const p of edge) if(!seen[p] && dist[p] < T1){ seen[p] = 1; q[qt++] = p; }
       while(qh < qt){
@@ -2824,8 +2864,11 @@ const Cut = { m:new Map(),
           for(const nb of [cx > 0 ? c-1 : -1, cx < w-1 ? c+1 : -1, c >= w ? c-w : -1, c < N-w ? c+w : -1]) if(nb >= 0 && !lab[nb] && d[nb*4+3] >= 120){ lab[nb] = id; q2[qt++] = nb; } }
         sizes.push(n);
       }
-      const big = Math.max(...sizes);
-      if(big > 0) for(let p = 0; p < N; p++){ const id = lab[p]; if(id && sizes[id] < big * .12) d[p*4+3] = 0; }
+      const big = Math.max(...sizes), kept = sizes.filter(n => n >= big * .12), area = kept.reduce((a, n) => a + n, 0);
+      if(big < N * .06 || kept.length > 8 || big < area * .3){              // el recorte quedó en pedazos: mejor la foto con borde suave
+        d.set(orig); x.putImageData(img, 0, 0); return this.soft(cv, x, img, d, w, h);
+      }
+      for(let p = 0; p < N; p++){ const id = lab[p]; if(id && sizes[id] < big * .12) d[p*4+3] = 0; }
       x.putImageData(img, 0, 0);
     }
     let x0 = w, y0 = h, x1 = -1, y1 = -1, solid = 0;
@@ -2964,6 +3007,7 @@ const POW_RE = /rallad|\bsal\b|pimienta|comino|oregano|azucar|harina|canela|papr
 const LIQ_COL = [[/aceite/,"rgba(226,178,58,.55)"],[/mantequilla|margarina/,"rgba(244,204,96,.62)"],[/leche|crema|nata|yogur|claras/,"rgba(247,243,233,.93)"],[/caldo|consome|fondo/,"rgba(198,134,58,.72)"],[/\bagua\b/,"rgba(168,205,220,.4)"],[/vino/,"rgba(118,22,40,.78)"],[/tomate|ketchup/,"rgba(180,38,28,.88)"],[/sillao|soya|soja/,"rgba(58,30,14,.88)"],[/miel/,"rgba(212,150,30,.82)"],[/vinagre/,"rgba(234,214,160,.5)"],[/huevo|yemas/,"rgba(245,196,58,.92)"],[/salsa/,"rgba(170,70,30,.8)"]];
 const POW_COL = [[/queso|rallad/,"#f2e4b4"],[/\bsal\b|azucar|harina|maicena|fecula|polvo de hornear|bicarbonato/,"rgba(255,255,255,.97)"],[/pimienta/,"#2b2520"],[/comino|canela|cacao/,"#7d4a22"],[/oregano|hierbas|tomillo/,"#5d6b2f"],[/paprika|pimenton|achiote|aji molido/,"#b5321f"],[/curry|curcuma|palillo/,"#d9a020"]];
 const FOOD_COL = [[/pollo|pechuga|gallina|pavo/,"#efc3a0"],[/\bres\b|carne|lomo|bistec|molida|chuleta/,"#a8452f"],[/cerdo|tocino|panceta|jamon|chorizo|salchicha/,"#e3a08a"],[/pescado|bonito|merluza|tilapia|salmon|atun|corvina/,"#f1d6c4"],[/camaron|langostino|marisco|pulpo|calamar/,"#f3a37c"],[/cebolla roja|cebolla morada/,"#9c4a7a"],[/cebolla|cebollin|poro/,"#efe3d6"],[/\bajo/,"#f2ece0"],[/tomate/,"#d33a2c"],[/papa|camote|yuca/,"#e6c98a"],[/zanahoria|zapallo|calabaza/,"#ef8a2a"],[/pimiento rojo|rocoto/,"#d2302a"],[/pimiento|aji verde/,"#4d9a3a"],[/\baji/,"#f1b21a"],[/limon|lima/,"#9cc93c"],[/arroz/,"#f6f2e8"],[/pasta|fideo|tallarin|spaghetti|macarron|quinua|trigo|penne/,"#f0d48a"],[/espinaca|acelga|lechuga|kale|albahaca|perejil|culantro|cilantro|hierba|huacatay|menta|brocoli|apio|vainita|arveja|zucchini|pepino/,"#4a8a34"],[/champinon|hongo/,"#d6c3a5"],[/huevo/,"#f5c443"],[/queso/,"#f1df9e"],[/maiz|choclo/,"#f1cd3d"],[/frijol|menestra|lenteja|garbanzo/,"#8a5a3a"],[/palta|aguacate/,"#6f8f2a"],[/platano|banana|mango|pina/,"#f1d14b"],[/fresa|frambuesa|cereza/,"#d42d43"],[/manzana/,"#c8352c"],[/\bpan\b|tostada|galleta/,"#d9a35b"],[/chocolate|cacao/,"#5b3420"],[/nuez|almendra|mani|pecana/,"#b07a45"]];
+const tokColor = item => { const k = kindOf(item); return k === "sol" ? foodColor(item) : colorOf(item, k); };
 const foodColor = item => { const n = norm(item); for(const [re, col] of FOOD_COL) if(re.test(n)) return col; return "#c9a27a"; };
 const kindOf = item => { const n = norm(item); return LIQ_RE.test(n) ? "liq" : POW_RE.test(n) ? "pow" : "sol"; };
 const colorOf = (item, kind, c) => { const n = norm(item); for(const [re, col] of kind === "pow" ? POW_COL : LIQ_COL) if(re.test(n)) return col; return c ? c.replace("rgb(", "rgba(").replace(")", kind === "liq" ? ",.85)" : ",1)") : kind === "liq" ? "rgba(200,150,80,.75)" : "#8a6a4a"; };
@@ -3046,8 +3090,9 @@ Responde SOLO JSON: {"en":[string]}`, { modelTier:"quick" });
   cutUrl(k){
     const r = this.r, en = r._ing_en?.[k];
     if(!en && sample && !r._ing_en_fail) return "";                 // esperando los nombres en inglés
-    const name = String(en || (r.ingredientes[k]?.item || "").split(/[(,]/)[0]).toLowerCase().replace(/\s+/g, " ").trim();
-    return name ? PIC.url(name, "cut", seedOf(name) % 9973) : "";
+    const es = String(r.ingredientes[k]?.item || "").split(/[(,]/)[0].toLowerCase().replace(/\s+/g, " ").trim();
+    const name = String(en || es).toLowerCase().replace(/\s+/g, " ").trim();
+    return name ? PIC.url(name, "cut", seedOf(name) % 9973) + (es && es !== name ? "&es=" + encodeURIComponent(es.slice(0, 50)) : "") : "";
   },
   get picked(){
     const vis = this.r.pasos.map((p,k) => [k, stepAction(p)]).filter(([,a]) => /hervir|freir|hornear|mezclar|licuar/.test(a)).map(([k]) => k);
@@ -3143,7 +3188,7 @@ Responde SOLO JSON: {"en":[string]}`, { modelTier:"quick" });
       <div class="gk-chef"><b>Nivel ${ch.lv}</b><span>${esc(ch.title)}${ch.dishes ? ` · ${ch.dishes} ${ch.dishes === 1 ? "plato" : "platos"}` : ""}</span><i style="--x:${ch.pct}"></i>
         <small>Cada paso da hasta 3 ★: ingredientes, técnica y punto exacto. Este plato reparte ${this.n * 3} ★.${ch.best?.[S.orig?.id] ? ` Tu récord aquí: ${ch.best[S.orig.id]} pts.` : ""}</small></div>
       <div class="gk-mise" role="group" aria-label="Ingredientes sobre la mesa">${(r.ingredientes||[]).map((x,k) => { const c = qtyOf(x.cantidad, fac), e = qtyOf(x.exacta, fac), on = this.have.has(k), nm = x.item.split(/[(,]/)[0].trim();
-        return `<button class="gk-mi${on ? " on" : ""}" data-have="${k}" aria-pressed="${on}"><span class="gk-tim" style="--c:${foodColor(x.item)}">${Cut.tag(this.cutUrl(k), "", nm)}<span class="gk-ini">${esc(nm.slice(0,1).toUpperCase())}</span></span><b>${esc(c)}</b><span>${esc(nm)}</span>${e && norm(e)!==norm(c) ? `<small>${esc(e)}</small>` : ""}</button>`; }).join("")}</div>
+        return `<button class="gk-mi${on ? " on" : ""}" data-have="${k}" aria-pressed="${on}"><span class="gk-tim k-${kindOf(x.item)}" style="--c:${tokColor(x.item)}">${Cut.tag(this.cutUrl(k), "", nm)}<span class="gk-ini">${esc(nm.slice(0,1).toUpperCase())}</span></span><b>${esc(c)}</b><span>${esc(nm)}</span>${e && norm(e)!==norm(c) ? `<small>${esc(e)}</small>` : ""}</button>`; }).join("")}</div>
       <p class="ck-sub">Toca cada ingrediente cuando ya lo tengas medido sobre la mesa · <b>${got}/${all}</b> listos</p>
       <div class="ck-facts">
         ${r.tiempo_min ? `<span>${cki("clock")} ${esc(r.tiempo_min)} min en total</span>` : ""}
@@ -3169,7 +3214,7 @@ Responde SOLO JSON: {"en":[string]}`, { modelTier:"quick" });
       <div class="gk-play">
         ${this.stageHTML()}
         ${ings.length ? `<div class="gk-tray" role="group" aria-label="Ingredientes de este paso">${ings.map(x => { const k = r.ingredientes.indexOf(x), c = qtyOf(x.cantidad, fac), on = st.added.has(k), nm = x.item.split(/[(,]/)[0].trim();
-          return `<button class="gk-tok${on ? " in" : ""}" data-add="${k}" aria-pressed="${on}" aria-label="Echar ${esc(nm)} a ${VES[v][1]}"><span class="gk-tim" style="--c:${foodColor(x.item)}">${Cut.tag(this.cutUrl(k), "", nm)}<span class="gk-ini">${esc(nm.slice(0,1).toUpperCase())}</span></span><b>${esc(c)}</b><span>${esc(nm)}</span></button>`; }).join("")}</div>` : ""}
+          return `<button class="gk-tok${on ? " in" : ""}" data-add="${k}" aria-pressed="${on}" aria-label="Echar ${esc(nm)} a ${VES[v][1]}"><span class="gk-tim k-${kindOf(x.item)}" style="--c:${tokColor(x.item)}">${Cut.tag(this.cutUrl(k), "", nm)}<span class="gk-ini">${esc(nm.slice(0,1).toUpperCase())}</span></span><b>${esc(c)}</b><span>${esc(nm)}</span></button>`; }).join("")}</div>` : ""}
         ${this.actHTML()}
       </div>
       ${mins ? this.timerHTML(mins) : ""}
@@ -3232,14 +3277,14 @@ Responde SOLO JSON: {"en":[string]}`, { modelTier:"quick" });
   },
   pcHTML(pc, fresh){
     if(pc.d) return `<i class="gk-dust" style="left:${pc.x}%;top:${pc.y}%;--c:${pc.c};--r:${pc.r}deg"></i>`;
-    const clipS = pc.w ? `clip-path:inset(${pc.t}% ${100 - pc.l - pc.w}% ${100 - pc.t - pc.w}% ${pc.l}%);` : "";
-    return Cut.tag(pc.u, "gk-pc" + (fresh ? " new" : "")).replace("<img ", `<img style="left:${pc.x}%;top:${pc.y}%;width:${pc.s}%;--r:${pc.r}deg;--c:${pc.fc || "#c9a27a"};${clipS}" data-r="${pc.r}" `);
+    const clipS = pc.w ? `clip-path:inset(${pc.t}% ${100 - pc.l - pc.w}% ${100 - pc.t - pc.w}% ${pc.l}%);--bx:${pc.l + pc.w/2}%;--by:${pc.t + pc.w/2}%;--br:${pc.w/2}%;` : "";
+    return Cut.tag(pc.u, "gk-pc" + (pc.w ? " bit" : "") + (fresh ? " new" : "")).replace("<img ", `<img style="left:${pc.x}%;top:${pc.y}%;width:${pc.s}%;--r:${pc.r}deg;--c:${pc.fc || "#c9a27a"};${clipS}" data-r="${pc.r}" `);
   },
   boardHTML(st){
     return st.board.map((b, j) => {
       const u = this.cutUrl(b.k);
       if(b.c >= 4) return Array.from({ length:10 }, (_, m) => { const s = j*13 + m, a = rnd(s, 1) * Math.PI * 2, rr = 2 + rnd(s, 2) * 13, l = 22 + Math.round(rnd(s, 4) * 34), t = 22 + Math.round(rnd(s, 5) * 34);
-        return Cut.tag(u, "gk-pc gk-bit").replace("<img ", `<img style="left:${(b.x + Math.cos(a)*rr).toFixed(1)}%;top:${(b.y + Math.sin(a)*rr*.75).toFixed(1)}%;--r:${Math.round(rnd(s,3)*360)}deg;--c:${b.fc || "#c9a27a"};clip-path:inset(${t}% ${100-l-22}% ${100-t-22}% ${l}%)" `); }).join("");
+        return Cut.tag(u, "gk-pc gk-bit bit").replace("<img ", `<img style="left:${(b.x + Math.cos(a)*rr).toFixed(1)}%;top:${(b.y + Math.sin(a)*rr*.75).toFixed(1)}%;--r:${Math.round(rnd(s,3)*360)}deg;--c:${b.fc || "#c9a27a"};clip-path:inset(${t}% ${100-l-22}% ${100-t-22}% ${l}%);--bx:${l + 11}%;--by:${t + 11}%;--br:11%" `); }).join("");
       const K = b.c + 1;
       return `<span class="gk-item" style="left:${b.x}%;top:${b.y}%;--c:${b.fc || "#c9a27a"}">${Array.from({ length:K }, (_, s) => Cut.tag(u).replace("<img ", `<img style="clip-path:inset(0 ${(100 - (s+1)*100/K).toFixed(1)}% 0 ${(s*100/K).toFixed(1)}%);transform:translateX(${((s - (K-1)/2) * 6).toFixed(1)}%)" `)).join("")}</span>`;
     }).join("");
@@ -3294,6 +3339,8 @@ Responde SOLO JSON: {"en":[string]}`, { modelTier:"quick" });
         ${sv && this.g.score > sv.prev && sv.prev ? `<em>¡Nuevo récord en este plato!</em>` : ""}${sv?.up ? `<em>¡Subiste a nivel ${ch.lv}: ${esc(ch.title)}!</em>` : ""}</div>
       <div class="gk-chef"><b>Nivel ${ch.lv}</b><span>${esc(ch.title)}</span><i style="--x:${ch.pct}"></i><small>Te faltan ${ch.next} pts para el siguiente nivel</small></div>
       ${this.picked.length ? `<div class="ck-film" aria-label="Tu receta paso a paso">${this.picked.map(k => `<figure>${PIC.tag(this.sceneUrl(k))}<figcaption>${k+1}</figcaption></figure>`).join("")}</div>` : ""}
+      ${(() => { const cr = [...new Set((this.r.ingredientes||[]).map((_, k) => Cut.get(this.cutUrl(k))?.credit).filter(Boolean))];
+        return cr.length ? `<details class="gk-cred"><summary>Fotos de los ingredientes</summary><ul>${cr.map(c => { const [t, u] = c.split("|"); return `<li>${u && /^https:\/\//.test(u) ? `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a>` : esc(t)}</li>`; }).join("")}</ul></details>` : ""; })()}
       <span class="ck-num">¡A la mesa!</span>
       <h2 class="ck-h">${esc(this.r.nombre)}</h2>
       <p class="ck-sub">¿Cómo te quedó? Lo que anotes aquí aparece la próxima vez que la cocines.</p>
