@@ -106,12 +106,14 @@ async function commons(q, diag){
     return { src:"commons", title:p.title, thumb:ii.thumburl, url:ii.descriptionurl, lic:String(m.LicenseShortName?.value || ""), by:String(m.Artist?.value || "").replace(/<[^>]+>/g, "").slice(0, 80), mime:ii.mime }; })
     .filter(x => x.thumb && /jpeg|png/.test(x.mime || "") && /^(public domain|cc0|pd|cc by)/i.test(x.lic) && !/nc|nd/i.test(x.lic));
 }
-const GEM_TEXT = () => [...new Set([process.env.GEMINI_MODEL, "gemini-3.6-flash", "gemini-3.8-flash", "gemini-3-flash-preview"].filter(Boolean))];
-async function gemJSON(models, parts, diag, extra = {}){
+// Para elegir fotos se usan modelos distintos a los que analizan las recetas (3.8 y 3.6), así no se gasta su cuota
+const GEM_PICK = () => [...new Set([process.env.GEMINI_PICK_MODEL, "gemini-3.7-flash", "gemini-3.5-flash", "gemini-3-flash-preview", "gemini-3.5-flash-lite", "gemini-3.6-flash"].filter(Boolean))];
+async function gemJSON(models, parts, diag, extra = {}, deadline = Date.now() + 40000){
   const key = process.env.GEMINI_API_KEY; if(!key) return null;
   for(const m of models){
+    const left = deadline - Date.now(); if(left < 6000) break;
     const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(m) + ":generateContent", { method:"POST",
-      headers:{ "content-type":"application/json", "x-goog-api-key":key }, signal: AbortSignal.timeout(14000),
+      headers:{ "content-type":"application/json", "x-goog-api-key":key }, signal: AbortSignal.timeout(Math.min(14000, left - 3000)),
       body: JSON.stringify({ contents:[{ role:"user", parts }], generationConfig:{ responseMimeType:"application/json", ...extra } }) }).catch(e => ({ ok:false, status:"err:" + e?.name }));
     const d = r.json ? await r.json().catch(() => ({})) : {};
     const txt = (d?.candidates?.[0]?.content?.parts || []).filter(x => x.text).map(x => x.text).join("");
@@ -126,7 +128,7 @@ function limited(ip){ const now = Date.now(), l = (hits.get(ip) || []).filter(t 
 const thumbAt = (c, px) => c.src === "commons" ? c.thumb.replace(/\/\d+px-/, "/" + px + "px-") : c.thumb;
 // Busca fotos reales de dominio público y deja que Gemini elija la que muestra el ingrediente solo y dónde está
 const plainW = s => String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z ]/g, " ").split(/\s+/).filter(w => w.length > 2);
-async function stock(q, es, diag){
+async function stock(q, es, diag, deadline){
   const lists = await Promise.all([openverse(q, diag), commons(q, diag), openverse(q + " isolated white background", diag), commons(q + " white background", diag), es ? commons(es, diag) : [], es ? openverse(es, diag) : []].map(p => Promise.resolve(p).catch(() => [])));
   const want = [...new Set([...plainW(q), ...plainW(es)])];
   const score = c => { const t = plainW(c.title).join(" "); return want.filter(w => t.includes(w.slice(0, Math.max(4, w.length - 2)))).length * 3 - (/drawing|illustration|logo|label|map|diagram|plant|flower|field|market|dish|recipe|soup|salad|cake|dessert/i.test(c.title) ? 4 : 0) + (/isolated|white background|fondo blanco/i.test(c.title) ? 4 : /raw|crudo|fresh|fresco/i.test(c.title) ? 2 : 0) - (/art|dark|experiment|science|fly|insect|bug|toy|costume/i.test(c.title) ? 5 : 0); };
@@ -142,7 +144,7 @@ async function stock(q, es, diag){
 Reglas: la foto debe mostrar SOLO ese ingrediente (descarta fotos con varios ingredientes distintos). Para líquidos o lácteos (leche, crema, aceite, caldo, salsas, vino) tiene que verse el líquido mismo en un vaso, jarra, bol o cuchara: descarta latas, cajas y botellas o paquetes con etiqueta o marca. Tiene que verse como ese ingrediente se ve normalmente en una cocina o en una foto de producto. Descarta platos ya cocinados, dibujos, personas, animales vivos, insectos, cubiertos clavados, experimentos o cosas raras, fotos oscuras o artísticas y fotos donde el ingrediente casi no se ve.
 Responde SOLO JSON: {"i": número de la foto elegida o -1 si ninguna sirve, "nota": del 1 al 10 qué tan bien esa foto muestra el ingrediente solo, "box": [ymin, xmin, ymax, xmax] del ingrediente en esa foto en escala 0-1000 (si hay varias piezas del mismo ingrediente, que las abarque todas), "liso": true solo si alrededor del ingrediente se ve un fondo liso y claro (false si el ingrediente llena la foto)}` }];
   ok.forEach((c, k) => { parts.push({ text:"Foto " + k + ":" }); parts.push({ inlineData:{ mimeType:c.img.mime, data:c.img.data } }); });
-  const pick = await gemJSON(GEM_TEXT(), parts, diag, { thinkingConfig:{ thinkingLevel:"low" } });
+  const pick = await gemJSON(GEM_PICK(), parts, diag, { thinkingConfig:{ thinkingLevel:"low" } }, deadline - 8000);
   const ch = pick && Number.isInteger(pick.i) && pick.i >= 0 && (pick.nota == null || +pick.nota >= 7) ? ok[pick.i] : null;
   diag.push("elegida " + (ch ? ch.title + " (" + pick.nota + "/10)" : "ninguna" + (pick?.i >= 0 ? " (nota " + pick.nota + ")" : "")));
   if(!ch) return null;
@@ -202,7 +204,7 @@ module.exports = async function handler(req, res){
       const probe = info && process.env.VERCEL_ENV === "preview";            // diagnóstico solo en versiones de prueba
       if(process.env.APP_CODE && code !== process.env.APP_CODE && !probe) diag.push("stock: falta el código de la app");
       else if(limited(ip)) diag.push("stock: demasiadas búsquedas");
-      else img = await stock(q, String(req.query?.es || "").replace(/\s+/g, " ").trim().slice(0, 60), diag).catch(e => { diag.push("stock " + (e?.message || e)); return null; });
+      else img = await stock(q, String(req.query?.es || "").replace(/\s+/g, " ").trim().slice(0, 60), diag, deadline).catch(e => { diag.push("stock " + (e?.message || e)); return null; });
     }
     if(!img && process.env.PEXELS_API_KEY && !t) img = await pexels(q, process.env.PEXELS_API_KEY);
     if(!img){
