@@ -204,7 +204,7 @@ module.exports = async function handler(req, res){
       res.setHeader("Cache-Control", t === "cut" && diag.some(x => /^elegida ninguna/.test(x)) && !info ? "public, max-age=0, s-maxage=86400" : "no-store");
       return info ? res.status(404).json({ error:"no_image", diag }) : res.status(404).end();
     }
-    if(info) return res.status(200).json({ src: img.src, type: img.type, bytes: img.buf.length, ...dims(img.buf), box: img.box, liso: img.liso, credit: img.credit, diag, ...(info === "b64" ? { b64: img.buf.toString("base64") } : {}) });
+    if(info) return res.status(200).json({ src: img.src, type: img.type, bytes: img.buf.length, ...dims(img.buf), box: img.box, liso: img.liso, credit: img.credit, diag, ...(info === "b64" ? { b64: img.buf.toString("base64"), pad: req.query?.pad ? "-".repeat(120000) : undefined } : {}) });
     if(img.buf.length > 4.3 * 1024 * 1024 && img.url){            // Vercel no envía respuestas de más de 4.5 MB: se redirige a la imagen
       res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=31536000");
       return res.redirect(302, img.url);
