@@ -1167,7 +1167,7 @@ img.foto.broken{visibility:hidden}
     <section class="shopping" id="shopping" hidden></section>
   </section>
 
-  <p class="disclaimer">Valores nutricionales y precios estimados por IA. Úsalos como referencia, no como indicación médica.</p>
+  <p class="disclaimer">Valores nutricionales y precios estimados por IA. Úsalos como referencia, no como indicación médica. <a href="#" id="keyLink" hidden>Clave de Claude</a></p>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
@@ -3883,6 +3883,7 @@ route();
   if(!$("#view-semana").hidden) drawWeek();
   if(S.orig && !$("#view-analizar").hidden) render();
 })();
+if(window.RECETOK_KEY){ const kl = $("#keyLink"); kl.hidden = false; kl.onclick = e => { e.preventDefault(); window.RECETOK_KEY.change(); }; }
 (async () => {
   try{
     sample = await window.claude?.use?.("sample");

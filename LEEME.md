@@ -17,13 +17,11 @@ Ya existe el proyecto **recetok** en tu equipo de Vercel ("Mariano's team"), con
 
 ## 2. Activar la IA
 
-1. Crea una clave en https://console.anthropic.com (sección *API Keys*) y carga saldo.
-2. En Vercel: proyecto **recetok-app** → *Settings → Environment Variables* → agrega
-   - `ANTHROPIC_API_KEY` = tu clave de Anthropic (marca *Production* y *Preview*). Con ella, **toda la IA usa Claude** (Sonnet 5.5 para recetas y Haiku 5.5 para lo rápido), incluida la elección de fotos de ingredientes.
-   - Opcional: `GEMINI_API_KEY` = clave gratis de https://aistudio.google.com/apikey. Solo se usa para **ver videos** de YouTube/TikTok (Claude no ve videos) o como respaldo si no hay clave de Claude.
-   - Opcional: `POLLINATIONS_API_KEY` = clave gratis de https://enter.pollinations.ai para fotos de platos sin logo.
-3. `APP_CODE` ya está creada. Es el código que la app te pide una vez por dispositivo. Puedes cambiarlo ahí mismo cuando quieras.
-4. Vuelve a publicar (*Deployments → ⋯ → Redeploy*) para que tome la clave.
+Lo más simple: abre la app, usa cualquier función de IA y te pide tu **clave de Claude** una vez (empieza con `sk-ant-`; la creas en https://console.anthropic.com → *API Keys* y cargas saldo). Se guarda solo en ese dispositivo y las consultas van directo a Claude (Sonnet 5.5 para recetas, Haiku 5.5 para lo rápido). Para cambiarla o quitarla: enlace **Clave de Claude** al final de la pantalla principal. No hay que configurar nada en Vercel.
+
+Claude no ve videos: con un link de YouTube/TikTok, pega también la descripción o la transcripción, o sube una captura.
+
+**Opcional, en Vercel** (solo si quieres el servidor): `GEMINI_API_KEY` (ver videos), `ANTHROPIC_API_KEY` y `APP_CODE` (la IA desde el servidor, con el código de acceso), `POLLINATIONS_API_KEY` (fotos de platos sin logo). Las fotos de ingredientes con búsqueda inteligente usan ese servidor.
 
 ## 3. Instalar en tu celular
 
