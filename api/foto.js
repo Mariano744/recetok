@@ -89,21 +89,22 @@ async function pollinations(q, seed, deadline, style, t, diag){
 
 /* ---------- Fotos reales de dominio público (Openverse y Wikimedia Commons) ---------- */
 const UA = { "User-Agent": "RecetokApp/1.0 (personal cooking app)" };
+// Licencias libres: dominio público o Creative Commons con atribución (se muestra en los créditos)
 async function openverse(q, diag){
-  const r = await fetch("https://api.openverse.org/v1/images/?page_size=12&mature=false&license=cc0,pdm&q=" + encodeURIComponent(q), { headers:UA, signal: AbortSignal.timeout(8000) }).catch(e => ({ ok:false, status:"err:" + e?.name }));
+  const r = await fetch("https://api.openverse.org/v1/images/?page_size=12&mature=false&license=cc0,pdm,by,by-sa&q=" + encodeURIComponent(q), { headers:UA, signal: AbortSignal.timeout(8000) }).catch(e => ({ ok:false, status:"err:" + e?.name }));
   const d = r.ok ? await r.json().catch(() => ({})) : {};
   diag.push("openverse " + r.status + " " + (d.result_count ?? ""));
-  return (d.results || []).filter(x => /jpe?g|png|webp/i.test(x.filetype || x.url || "")).map(x => ({ src:"openverse", title:x.title || "", thumb:x.thumbnail, url:x.url, lic:x.license, by:x.creator || "", w:x.width, h:x.height, from:x.source }));
+  return (d.results || []).filter(x => /jpe?g|png|webp/i.test(x.filetype || x.url || "")).map(x => ({ src:"openverse", title:x.title || "", thumb:x.thumbnail, url:x.foreign_landing_url || x.url, lic:String(x.license || "").toUpperCase() + (x.license_version ? " " + x.license_version : ""), by:x.creator || "", w:x.width, h:x.height, from:x.source }));
 }
 async function commons(q, diag){
-  const u = "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrnamespace=6&gsrlimit=12&prop=imageinfo&iiprop=url|mime|extmetadata&iiurlwidth=560&gsrsearch=" + encodeURIComponent(q + " filetype:bitmap");
+  const u = "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrnamespace=6&gsrlimit=16&prop=imageinfo&iiprop=url|mime|extmetadata&iiurlwidth=560&gsrsearch=" + encodeURIComponent(q + " filetype:bitmap");
   const r = await fetch(u, { headers:UA, signal: AbortSignal.timeout(8000) }).catch(e => ({ ok:false, status:"err:" + e?.name }));
   const d = r.ok ? await r.json().catch(() => ({})) : {};
   const pages = Object.values(d?.query?.pages || {}).sort((a, b) => (a.index || 0) - (b.index || 0));
   diag.push("commons " + r.status + " " + pages.length);
   return pages.map(p => { const ii = p.imageinfo?.[0] || {}, m = ii.extmetadata || {};
     return { src:"commons", title:p.title, thumb:ii.thumburl, url:ii.descriptionurl, lic:String(m.LicenseShortName?.value || ""), by:String(m.Artist?.value || "").replace(/<[^>]+>/g, "").slice(0, 80), mime:ii.mime }; })
-    .filter(x => x.thumb && /jpeg|png/.test(x.mime || "") && /public domain|cc0|pd/i.test(x.lic));
+    .filter(x => x.thumb && /jpeg|png/.test(x.mime || "") && /^(public domain|cc0|pd|cc by)/i.test(x.lic) && !/nc|nd/i.test(x.lic));
 }
 const GEM_TEXT = () => [...new Set([process.env.GEMINI_MODEL, "gemini-3.6-flash", "gemini-3.8-flash", "gemini-3-flash-preview"].filter(Boolean))];
 async function gemJSON(models, parts, diag, extra = {}){
@@ -124,11 +125,14 @@ const hits = new Map();                                             // límite s
 function limited(ip){ const now = Date.now(), l = (hits.get(ip) || []).filter(t => now - t < 600000); l.push(now); hits.set(ip, l); return l.length > 60; }
 const thumbAt = (c, px) => c.src === "commons" ? c.thumb.replace(/\/\d+px-/, "/" + px + "px-") : c.thumb;
 // Busca fotos reales de dominio público y deja que Gemini elija la que muestra el ingrediente solo y dónde está
+const plainW = s => String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z ]/g, " ").split(/\s+/).filter(w => w.length > 2);
 async function stock(q, es, diag){
-  const [a, b] = await Promise.all([openverse(q, diag).catch(() => []), commons(q, diag).catch(() => [])]);
-  let cands = [...a.slice(0, 3), ...b.slice(0, 4)];
-  if(cands.length < 4 && es) cands = cands.concat((await commons(es, diag).catch(() => [])).slice(0, 3));
-  const seen = new Set(); cands = cands.filter(c => { const k = c.title.toLowerCase().replace(/^file:|\.\w+$/g, "").trim(); if(seen.has(k)) return false; seen.add(k); return true; }).slice(0, 7);
+  const lists = await Promise.all([openverse(q, diag), commons(q, diag), es ? commons(es, diag) : [], es ? openverse(es, diag) : []].map(p => Promise.resolve(p).catch(() => [])));
+  const want = [...new Set([...plainW(q), ...plainW(es)])];
+  const score = c => { const t = plainW(c.title).join(" "); return want.filter(w => t.includes(w.slice(0, Math.max(4, w.length - 2)))).length * 3 - (/drawing|illustration|logo|label|map|diagram|plant|flower|field|market|dish|recipe|soup|salad|cake|dessert/i.test(c.title) ? 4 : 0) + (/isolated|white background|fondo blanco|raw|crudo|fresh|fresco/i.test(c.title) ? 2 : 0); };
+  const seen = new Set();
+  const cands = lists.flat().filter(c => { const k = c.title.toLowerCase().replace(/^file:|\.\w+$/g, "").trim(); if(seen.has(k)) return false; seen.add(k); return true; })
+    .map(c => ({ ...c, sc: score(c) })).sort((x, y) => y.sc - x.sc).slice(0, 8);
   if(!cands.length) return null;
   const imgs = await Promise.all(cands.map(c => fetch(thumbAt(c, 330), { headers:UA, signal: AbortSignal.timeout(7000) })
     .then(async r => r.ok ? { mime: (r.headers.get("content-type") || "image/jpeg").split(";")[0], data: Buffer.from(await r.arrayBuffer()).toString("base64") } : null).catch(() => null)));
@@ -146,7 +150,7 @@ async function stock(q, es, diag){
   if(!buf || buf.length < 3000) return null;
   const box = Array.isArray(pick.box) && pick.box.length === 4 && pick.box.every(v => Number.isFinite(+v)) ? pick.box.map(v => Math.max(0, Math.min(1000, Math.round(+v)))).join(",") : "";
   return { buf, type, url: ch.url, src: "stock:" + ch.src, box, liso: pick.liso ? "1" : "0",
-    credit: [ch.title.replace(/^File:/, "").replace(/\.\w+$/, ""), ch.by, ch.lic, ch.src === "commons" ? "Wikimedia Commons" : "Openverse"].filter(Boolean).join(" · ").slice(0, 180) };
+    credit: [ch.title.replace(/^File:/, "").replace(/\.\w+$/, ""), ch.by, ch.lic, ch.src === "commons" ? "Wikimedia Commons" : "Openverse"].filter(Boolean).join(" · ").slice(0, 180) + (ch.url ? "|" + ch.url : "") };
 }
 
 // Ancho y alto reales de un JPEG/PNG (para comprobar la resolución)
@@ -195,7 +199,7 @@ module.exports = async function handler(req, res){
     }
     if(!img && process.env.PEXELS_API_KEY && !t) img = await pexels(q, process.env.PEXELS_API_KEY);
     if(!img){
-      res.setHeader("Cache-Control", "no-store");
+      res.setHeader("Cache-Control", t === "cut" && diag.some(x => /^elegida ninguna/.test(x)) && !info ? "public, max-age=0, s-maxage=86400" : "no-store");
       return info ? res.status(404).json({ error:"no_image", diag }) : res.status(404).end();
     }
     if(info) return res.status(200).json({ src: img.src, type: img.type, bytes: img.buf.length, ...dims(img.buf), box: img.box, liso: img.liso, credit: img.credit, diag, ...(info === "b64" ? { b64: img.buf.toString("base64") } : {}) });

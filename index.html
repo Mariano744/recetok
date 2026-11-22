@@ -932,7 +932,10 @@ ol.steps li .mins{display:inline-block;margin-left:8px;font:500 .72rem var(--f-n
 .gk-tim img.soft{filter:none}
 .gk-pc.soft{filter:saturate(1.05)}
 .gk-pc.bit.soft{clip-path:none!important;-webkit-mask-image:radial-gradient(var(--br) var(--br) at var(--bx) var(--by),#000 45%,transparent 100%);mask-image:radial-gradient(var(--br) var(--br) at var(--bx) var(--by),#000 45%,transparent 100%)}
-.gk-cred{font-size:.78rem;color:var(--muted)}.gk-cred summary{cursor:pointer}.gk-cred ul{margin:6px 0 0;padding-left:18px;display:grid;gap:3px}
+.gk-tim.k-liq:has(img.broken)::before{animation:none;inset:4%;background:radial-gradient(circle at 50% 52%,var(--c) 0 47%,transparent 48.5%),radial-gradient(circle at 38% 30%,#fff 0 38%,#eef1f2 56%,#cfd6da 63%,rgba(0,0,0,.14) 66%,transparent 69%)}
+.gk-tim.k-pow:has(img.broken)::before{animation:none;inset:4%;background:radial-gradient(circle at 50% 50%,var(--c) 0 22%,transparent 38%),radial-gradient(circle at 38% 30%,#fff 0 38%,#eef1f2 56%,#cfd6da 63%,rgba(0,0,0,.14) 66%,transparent 69%)}
+.gk-tim.k-liq:has(img.broken) .gk-ini,.gk-tim.k-pow:has(img.broken) .gk-ini{opacity:0}
+.gk-cred{font-size:.78rem;color:var(--muted)}.gk-cred a{color:inherit}.gk-cred summary{cursor:pointer}.gk-cred ul{margin:6px 0 0;padding-left:18px;display:grid;gap:3px}
 .gk-tim .gk-ini{position:absolute;inset:0;display:grid;place-items:center;font:700 1.5rem var(--f-display);color:var(--brand);opacity:0}
 .gk-tim:has(img.broken) .gk-ini{opacity:1;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.35)}.gk-tim:has(img.wait) .gk-ini{opacity:.55}
 .gk-tok.in{opacity:.42;cursor:default}
@@ -3000,6 +3003,7 @@ const POW_RE = /rallad|\bsal\b|pimienta|comino|oregano|azucar|harina|canela|papr
 const LIQ_COL = [[/aceite/,"rgba(226,178,58,.55)"],[/mantequilla|margarina/,"rgba(244,204,96,.62)"],[/leche|crema|nata|yogur|claras/,"rgba(247,243,233,.93)"],[/caldo|consome|fondo/,"rgba(198,134,58,.72)"],[/\bagua\b/,"rgba(168,205,220,.4)"],[/vino/,"rgba(118,22,40,.78)"],[/tomate|ketchup/,"rgba(180,38,28,.88)"],[/sillao|soya|soja/,"rgba(58,30,14,.88)"],[/miel/,"rgba(212,150,30,.82)"],[/vinagre/,"rgba(234,214,160,.5)"],[/huevo|yemas/,"rgba(245,196,58,.92)"],[/salsa/,"rgba(170,70,30,.8)"]];
 const POW_COL = [[/queso|rallad/,"#f2e4b4"],[/\bsal\b|azucar|harina|maicena|fecula|polvo de hornear|bicarbonato/,"rgba(255,255,255,.97)"],[/pimienta/,"#2b2520"],[/comino|canela|cacao/,"#7d4a22"],[/oregano|hierbas|tomillo/,"#5d6b2f"],[/paprika|pimenton|achiote|aji molido/,"#b5321f"],[/curry|curcuma|palillo/,"#d9a020"]];
 const FOOD_COL = [[/pollo|pechuga|gallina|pavo/,"#efc3a0"],[/\bres\b|carne|lomo|bistec|molida|chuleta/,"#a8452f"],[/cerdo|tocino|panceta|jamon|chorizo|salchicha/,"#e3a08a"],[/pescado|bonito|merluza|tilapia|salmon|atun|corvina/,"#f1d6c4"],[/camaron|langostino|marisco|pulpo|calamar/,"#f3a37c"],[/cebolla roja|cebolla morada/,"#9c4a7a"],[/cebolla|cebollin|poro/,"#efe3d6"],[/\bajo/,"#f2ece0"],[/tomate/,"#d33a2c"],[/papa|camote|yuca/,"#e6c98a"],[/zanahoria|zapallo|calabaza/,"#ef8a2a"],[/pimiento rojo|rocoto/,"#d2302a"],[/pimiento|aji verde/,"#4d9a3a"],[/\baji/,"#f1b21a"],[/limon|lima/,"#9cc93c"],[/arroz/,"#f6f2e8"],[/pasta|fideo|tallarin|spaghetti|macarron|quinua|trigo|penne/,"#f0d48a"],[/espinaca|acelga|lechuga|kale|albahaca|perejil|culantro|cilantro|hierba|huacatay|menta|brocoli|apio|vainita|arveja|zucchini|pepino/,"#4a8a34"],[/champinon|hongo/,"#d6c3a5"],[/huevo/,"#f5c443"],[/queso/,"#f1df9e"],[/maiz|choclo/,"#f1cd3d"],[/frijol|menestra|lenteja|garbanzo/,"#8a5a3a"],[/palta|aguacate/,"#6f8f2a"],[/platano|banana|mango|pina/,"#f1d14b"],[/fresa|frambuesa|cereza/,"#d42d43"],[/manzana/,"#c8352c"],[/\bpan\b|tostada|galleta/,"#d9a35b"],[/chocolate|cacao/,"#5b3420"],[/nuez|almendra|mani|pecana/,"#b07a45"]];
+const tokColor = item => { const k = kindOf(item); return k === "sol" ? foodColor(item) : colorOf(item, k); };
 const foodColor = item => { const n = norm(item); for(const [re, col] of FOOD_COL) if(re.test(n)) return col; return "#c9a27a"; };
 const kindOf = item => { const n = norm(item); return LIQ_RE.test(n) ? "liq" : POW_RE.test(n) ? "pow" : "sol"; };
 const colorOf = (item, kind, c) => { const n = norm(item); for(const [re, col] of kind === "pow" ? POW_COL : LIQ_COL) if(re.test(n)) return col; return c ? c.replace("rgb(", "rgba(").replace(")", kind === "liq" ? ",.85)" : ",1)") : kind === "liq" ? "rgba(200,150,80,.75)" : "#8a6a4a"; };
@@ -3180,7 +3184,7 @@ Responde SOLO JSON: {"en":[string]}`, { modelTier:"quick" });
       <div class="gk-chef"><b>Nivel ${ch.lv}</b><span>${esc(ch.title)}${ch.dishes ? ` · ${ch.dishes} ${ch.dishes === 1 ? "plato" : "platos"}` : ""}</span><i style="--x:${ch.pct}"></i>
         <small>Cada paso da hasta 3 ★: ingredientes, técnica y punto exacto. Este plato reparte ${this.n * 3} ★.${ch.best?.[S.orig?.id] ? ` Tu récord aquí: ${ch.best[S.orig.id]} pts.` : ""}</small></div>
       <div class="gk-mise" role="group" aria-label="Ingredientes sobre la mesa">${(r.ingredientes||[]).map((x,k) => { const c = qtyOf(x.cantidad, fac), e = qtyOf(x.exacta, fac), on = this.have.has(k), nm = x.item.split(/[(,]/)[0].trim();
-        return `<button class="gk-mi${on ? " on" : ""}" data-have="${k}" aria-pressed="${on}"><span class="gk-tim" style="--c:${foodColor(x.item)}">${Cut.tag(this.cutUrl(k), "", nm)}<span class="gk-ini">${esc(nm.slice(0,1).toUpperCase())}</span></span><b>${esc(c)}</b><span>${esc(nm)}</span>${e && norm(e)!==norm(c) ? `<small>${esc(e)}</small>` : ""}</button>`; }).join("")}</div>
+        return `<button class="gk-mi${on ? " on" : ""}" data-have="${k}" aria-pressed="${on}"><span class="gk-tim k-${kindOf(x.item)}" style="--c:${tokColor(x.item)}">${Cut.tag(this.cutUrl(k), "", nm)}<span class="gk-ini">${esc(nm.slice(0,1).toUpperCase())}</span></span><b>${esc(c)}</b><span>${esc(nm)}</span>${e && norm(e)!==norm(c) ? `<small>${esc(e)}</small>` : ""}</button>`; }).join("")}</div>
       <p class="ck-sub">Toca cada ingrediente cuando ya lo tengas medido sobre la mesa · <b>${got}/${all}</b> listos</p>
       <div class="ck-facts">
         ${r.tiempo_min ? `<span>${cki("clock")} ${esc(r.tiempo_min)} min en total</span>` : ""}
@@ -3206,7 +3210,7 @@ Responde SOLO JSON: {"en":[string]}`, { modelTier:"quick" });
       <div class="gk-play">
         ${this.stageHTML()}
         ${ings.length ? `<div class="gk-tray" role="group" aria-label="Ingredientes de este paso">${ings.map(x => { const k = r.ingredientes.indexOf(x), c = qtyOf(x.cantidad, fac), on = st.added.has(k), nm = x.item.split(/[(,]/)[0].trim();
-          return `<button class="gk-tok${on ? " in" : ""}" data-add="${k}" aria-pressed="${on}" aria-label="Echar ${esc(nm)} a ${VES[v][1]}"><span class="gk-tim" style="--c:${foodColor(x.item)}">${Cut.tag(this.cutUrl(k), "", nm)}<span class="gk-ini">${esc(nm.slice(0,1).toUpperCase())}</span></span><b>${esc(c)}</b><span>${esc(nm)}</span></button>`; }).join("")}</div>` : ""}
+          return `<button class="gk-tok${on ? " in" : ""}" data-add="${k}" aria-pressed="${on}" aria-label="Echar ${esc(nm)} a ${VES[v][1]}"><span class="gk-tim k-${kindOf(x.item)}" style="--c:${tokColor(x.item)}">${Cut.tag(this.cutUrl(k), "", nm)}<span class="gk-ini">${esc(nm.slice(0,1).toUpperCase())}</span></span><b>${esc(c)}</b><span>${esc(nm)}</span></button>`; }).join("")}</div>` : ""}
         ${this.actHTML()}
       </div>
       ${mins ? this.timerHTML(mins) : ""}
@@ -3332,7 +3336,7 @@ Responde SOLO JSON: {"en":[string]}`, { modelTier:"quick" });
       <div class="gk-chef"><b>Nivel ${ch.lv}</b><span>${esc(ch.title)}</span><i style="--x:${ch.pct}"></i><small>Te faltan ${ch.next} pts para el siguiente nivel</small></div>
       ${this.picked.length ? `<div class="ck-film" aria-label="Tu receta paso a paso">${this.picked.map(k => `<figure>${PIC.tag(this.sceneUrl(k))}<figcaption>${k+1}</figcaption></figure>`).join("")}</div>` : ""}
       ${(() => { const cr = [...new Set((this.r.ingredientes||[]).map((_, k) => Cut.get(this.cutUrl(k))?.credit).filter(Boolean))];
-        return cr.length ? `<details class="gk-cred"><summary>Fotos de los ingredientes</summary><ul>${cr.map(c => `<li>${esc(c)}</li>`).join("")}</ul></details>` : ""; })()}
+        return cr.length ? `<details class="gk-cred"><summary>Fotos de los ingredientes</summary><ul>${cr.map(c => { const [t, u] = c.split("|"); return `<li>${u && /^https:\/\//.test(u) ? `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a>` : esc(t)}</li>`; }).join("")}</ul></details>` : ""; })()}
       <span class="ck-num">¡A la mesa!</span>
       <h2 class="ck-h">${esc(this.r.nombre)}</h2>
       <p class="ck-sub">¿Cómo te quedó? Lo que anotes aquí aparece la próxima vez que la cocines.</p>
