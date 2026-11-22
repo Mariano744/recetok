@@ -91,7 +91,7 @@ async function pollinations(q, seed, deadline, style, t, diag){
 const UA = { "User-Agent": "RecetokApp/1.0 (personal cooking app)" };
 // Licencias libres: dominio público o Creative Commons con atribución (se muestra en los créditos)
 async function openverse(q, diag){
-  const r = await fetch("https://api.openverse.org/v1/images/?page_size=12&mature=false&license=cc0,pdm,by,by-sa&q=" + encodeURIComponent(q), { headers:UA, signal: AbortSignal.timeout(8000) }).catch(e => ({ ok:false, status:"err:" + e?.name }));
+  const r = await fetch("https://api.openverse.org/v1/images/?page_size=12&mature=false&category=photograph&license=cc0,pdm,by,by-sa&q=" + encodeURIComponent(q), { headers:UA, signal: AbortSignal.timeout(8000) }).catch(e => ({ ok:false, status:"err:" + e?.name }));
   const d = r.ok ? await r.json().catch(() => ({})) : {};
   diag.push("openverse " + r.status + " " + (d.result_count ?? ""));
   return (d.results || []).filter(x => /jpe?g|png|webp/i.test(x.filetype || x.url || "")).map(x => ({ src:"openverse", title:x.title || "", thumb:x.thumbnail, url:x.foreign_landing_url || x.url, lic:String(x.license || "").toUpperCase() + (x.license_version ? " " + x.license_version : ""), by:x.creator || "", w:x.width, h:x.height, from:x.source }));
@@ -127,9 +127,9 @@ const thumbAt = (c, px) => c.src === "commons" ? c.thumb.replace(/\/\d+px-/, "/"
 // Busca fotos reales de dominio público y deja que Gemini elija la que muestra el ingrediente solo y dónde está
 const plainW = s => String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z ]/g, " ").split(/\s+/).filter(w => w.length > 2);
 async function stock(q, es, diag){
-  const lists = await Promise.all([openverse(q, diag), commons(q, diag), es ? commons(es, diag) : [], es ? openverse(es, diag) : []].map(p => Promise.resolve(p).catch(() => [])));
+  const lists = await Promise.all([openverse(q, diag), commons(q, diag), openverse(q + " isolated white background", diag), commons(q + " white background", diag), es ? commons(es, diag) : [], es ? openverse(es, diag) : []].map(p => Promise.resolve(p).catch(() => [])));
   const want = [...new Set([...plainW(q), ...plainW(es)])];
-  const score = c => { const t = plainW(c.title).join(" "); return want.filter(w => t.includes(w.slice(0, Math.max(4, w.length - 2)))).length * 3 - (/drawing|illustration|logo|label|map|diagram|plant|flower|field|market|dish|recipe|soup|salad|cake|dessert/i.test(c.title) ? 4 : 0) + (/isolated|white background|fondo blanco|raw|crudo|fresh|fresco/i.test(c.title) ? 2 : 0); };
+  const score = c => { const t = plainW(c.title).join(" "); return want.filter(w => t.includes(w.slice(0, Math.max(4, w.length - 2)))).length * 3 - (/drawing|illustration|logo|label|map|diagram|plant|flower|field|market|dish|recipe|soup|salad|cake|dessert/i.test(c.title) ? 4 : 0) + (/isolated|white background|fondo blanco/i.test(c.title) ? 4 : /raw|crudo|fresh|fresco/i.test(c.title) ? 2 : 0) - (/art|dark|experiment|science|fly|insect|bug|toy|costume/i.test(c.title) ? 5 : 0); };
   const seen = new Set();
   const cands = lists.flat().filter(c => { const k = c.title.toLowerCase().replace(/^file:|\.\w+$/g, "").trim(); if(seen.has(k)) return false; seen.add(k); return true; })
     .map(c => ({ ...c, sc: score(c) })).sort((x, y) => y.sc - x.sc).slice(0, 8);
@@ -139,11 +139,11 @@ async function stock(q, es, diag){
   const ok = cands.map((c, k) => ({ ...c, img: imgs[k] })).filter(c => c.img && /^image\/(jpeg|png|webp)/.test(c.img.mime) && c.img.data.length > 2000);
   if(!ok.length) return null;
   const parts = [{ text:`Ingrediente de cocina: "${q}"${es ? ` (en español: "${es}")` : ""}. Te mando ${ok.length} fotos numeradas desde 0. Elige la que mejor muestre ESE ingrediente tal como se usa al cocinar (crudo o como se compra), reconocible, nítido y bien iluminado, con colores naturales; mejor si se ve entero con algo de fondo liso y claro alrededor.
-Reglas: la foto debe mostrar SOLO ese ingrediente (descarta fotos con varios ingredientes distintos). Para líquidos o lácteos (leche, crema, aceite, caldo, salsas, vino) tiene que verse el líquido mismo en un vaso, jarra, bol o cuchara: descarta latas, cajas y botellas o paquetes con etiqueta o marca. Descarta platos ya cocinados, dibujos, personas, animales vivos, fotos oscuras o artísticas y fotos donde el ingrediente casi no se ve.
+Reglas: la foto debe mostrar SOLO ese ingrediente (descarta fotos con varios ingredientes distintos). Para líquidos o lácteos (leche, crema, aceite, caldo, salsas, vino) tiene que verse el líquido mismo en un vaso, jarra, bol o cuchara: descarta latas, cajas y botellas o paquetes con etiqueta o marca. Tiene que verse como ese ingrediente se ve normalmente en una cocina o en una foto de producto. Descarta platos ya cocinados, dibujos, personas, animales vivos, insectos, cubiertos clavados, experimentos o cosas raras, fotos oscuras o artísticas y fotos donde el ingrediente casi no se ve.
 Responde SOLO JSON: {"i": número de la foto elegida o -1 si ninguna sirve, "nota": del 1 al 10 qué tan bien esa foto muestra el ingrediente solo, "box": [ymin, xmin, ymax, xmax] del ingrediente en esa foto en escala 0-1000 (si hay varias piezas del mismo ingrediente, que las abarque todas), "liso": true solo si alrededor del ingrediente se ve un fondo liso y claro (false si el ingrediente llena la foto)}` }];
   ok.forEach((c, k) => { parts.push({ text:"Foto " + k + ":" }); parts.push({ inlineData:{ mimeType:c.img.mime, data:c.img.data } }); });
   const pick = await gemJSON(GEM_TEXT(), parts, diag, { thinkingConfig:{ thinkingLevel:"low" } });
-  const ch = pick && Number.isInteger(pick.i) && pick.i >= 0 && (pick.nota == null || +pick.nota >= 6) ? ok[pick.i] : null;
+  const ch = pick && Number.isInteger(pick.i) && pick.i >= 0 && (pick.nota == null || +pick.nota >= 7) ? ok[pick.i] : null;
   diag.push("elegida " + (ch ? ch.title + " (" + pick.nota + "/10)" : "ninguna" + (pick?.i >= 0 ? " (nota " + pick.nota + ")" : "")));
   if(!ch) return null;
   const r = await fetch(thumbAt(ch, 500), { headers:UA, signal: AbortSignal.timeout(9000) }).catch(() => null);
