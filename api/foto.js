@@ -106,6 +106,24 @@ async function commons(q, diag){
     return { src:"commons", title:p.title, thumb:ii.thumburl, url:ii.descriptionurl, lic:String(m.LicenseShortName?.value || ""), by:String(m.Artist?.value || "").replace(/<[^>]+>/g, "").slice(0, 80), mime:ii.mime }; })
     .filter(x => x.thumb && /jpeg|png/.test(x.mime || "") && /^(public domain|cc0|pd|cc by)/i.test(x.lic) && !/nc|nd/i.test(x.lic));
 }
+// Elegir fotos con Claude (visión): lo usa la app cuando hay ANTHROPIC_API_KEY
+async function claudeJSON(parts, diag, deadline){
+  const content = parts.map(p => p.inlineData ? { type:"image", source:{ type:"base64", media_type:p.inlineData.mimeType, data:p.inlineData.data } } : { type:"text", text:p.text });
+  const models = [...new Set([process.env.CLAUDE_PICK_MODEL, "claude-haiku-5-5", "claude-sonnet-5-5"].filter(Boolean))];
+  for(const m of models){
+    const left = deadline - Date.now(); if(left < 6000) break;
+    const r = await fetch("https://api.anthropic.com/v1/messages", { method:"POST", signal: AbortSignal.timeout(Math.min(20000, left - 2000)),
+      headers:{ "content-type":"application/json", "x-api-key":process.env.ANTHROPIC_API_KEY, "anthropic-version":"2023-06-01" },
+      body: JSON.stringify({ model:m, max_tokens:400, system:"Respondes solo con el JSON pedido, sin texto antes ni después.", messages:[{ role:"user", content }] }) }).catch(e => ({ ok:false, status:"err:" + e?.name }));
+    const d = r.json ? await r.json().catch(() => ({})) : {};
+    const txt = (d.content || []).filter(c => c.type === "text").map(c => c.text).join("");
+    diag.push("claude " + m + " " + r.status + (r.ok ? "" : " " + String(d?.error?.message || "").slice(0, 120)));
+    const j = txt.match(/\{[\s\S]*\}/);
+    if(r.ok && j){ try{ return JSON.parse(j[0]); }catch{ diag.push("json? " + txt.slice(0, 150)); } }
+    if(r.status === 401 || r.status === 403) break;
+  }
+  return null;
+}
 // Para elegir fotos se usan modelos distintos a los que analizan las recetas (3.8 y 3.6), así no se gasta su cuota
 const GEM_PICK = () => [...new Set([process.env.GEMINI_PICK_MODEL, "gemini-3.5-flash", "gemini-3-flash-preview", "gemini-3.5-flash-lite", "gemini-3.6-flash"].filter(Boolean))];
 async function gemJSON(models, parts, diag, extra = {}, deadline = Date.now() + 40000){
@@ -144,7 +162,7 @@ async function stock(q, es, diag, deadline){
 Reglas: la foto debe mostrar SOLO ese ingrediente (descarta fotos con varios ingredientes distintos). Para líquidos o lácteos (leche, crema, aceite, caldo, salsas, vino) tiene que verse el líquido mismo en un vaso, jarra, bol o cuchara: descarta latas, cajas y botellas o paquetes con etiqueta o marca. Tiene que verse como ese ingrediente se ve normalmente en una cocina o en una foto de producto. Descarta platos ya cocinados, dibujos, personas, animales vivos, insectos, cubiertos clavados, experimentos o cosas raras, fotos oscuras o artísticas y fotos donde el ingrediente casi no se ve.
 Responde SOLO JSON: {"i": número de la foto elegida o -1 si ninguna sirve, "nota": del 1 al 10 qué tan bien esa foto muestra el ingrediente solo, "box": [ymin, xmin, ymax, xmax] del ingrediente en esa foto en escala 0-1000 (si hay varias piezas del mismo ingrediente, que las abarque todas), "liso": true solo si alrededor del ingrediente se ve un fondo liso y claro (false si el ingrediente llena la foto)}` }];
   ok.forEach((c, k) => { parts.push({ text:"Foto " + k + ":" }); parts.push({ inlineData:{ mimeType:c.img.mime, data:c.img.data } }); });
-  const pick = await gemJSON(GEM_PICK(), parts, diag, { thinkingConfig:{ thinkingLevel:"low" } }, deadline - 8000);
+  const pick = process.env.ANTHROPIC_API_KEY ? await claudeJSON(parts, diag, deadline - 5000) : await gemJSON(GEM_PICK(), parts, diag, { thinkingConfig:{ thinkingLevel:"low" } }, deadline - 8000);
   const ch = pick && Number.isInteger(pick.i) && pick.i >= 0 && (pick.nota == null || +pick.nota >= 7) ? ok[pick.i] : null;
   diag.push("elegida " + (ch ? ch.title + " (" + pick.nota + "/10)" : "ninguna" + (pick?.i >= 0 ? " (nota " + pick.nota + ")" : "")));
   if(!ch) return null;
@@ -199,7 +217,7 @@ module.exports = async function handler(req, res){
     // Sin clave, el modelo gratis no respeta "ingrediente solo sobre fondo blanco" (arma un plato): para ingredientes no se usa
     if(!img && (t !== "cut" || process.env.POLLINATIONS_API_KEY)) img = await pollinations(q, seed, deadline, style, t, diag);
     // Ingredientes: foto real de dominio público elegida por Gemini (solo para la app, con su código de acceso)
-    if(!img && t === "cut" && process.env.GEMINI_API_KEY){
+    if(!img && t === "cut" && (process.env.ANTHROPIC_API_KEY || process.env.GEMINI_API_KEY)){
       const code = req.headers["x-app-code"], ip = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || "local";
       const probe = info && process.env.VERCEL_ENV === "preview";            // diagnóstico solo en versiones de prueba
       if(process.env.APP_CODE && code !== process.env.APP_CODE && !probe) diag.push("stock: falta el código de la app");
