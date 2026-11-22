@@ -59,13 +59,43 @@ async function pollinations(q, seed, deadline, style, t, diag){
     const left = deadline - Date.now(); if(left < 8000) return null;
     const r = await fetch(url, { signal: AbortSignal.timeout(left - 2000) }).catch(e => ({ status: "err:" + (e?.name || "") }));
     const type = r.headers?.get("content-type") || "";
-    diag.push("pollinations " + r.status + " " + type.slice(0, 20));
+    diag.push("pollinations " + r.status + " " + type.slice(0, 20) + (r.ok || !r.text ? "" : " " + (await r.text().catch(() => "")).slice(0, 200)));
     if(r.ok && /^image\//.test(type)){
       const buf = Buffer.from(await r.arrayBuffer());
       if(buf.length > 8000) return { buf, type, url, src: "pollinations" };
     }
     if(![429, 500, 502, 503, 504].includes(r.status) && !String(r.status).startsWith("err")) return null;
     await new Promise(res => setTimeout(res, i ? 16000 : 9000));   // límite gratis: ~1 imagen cada 15 s
+  }
+  return null;
+}
+
+// Gemini (con la GEMINI_API_KEY que ya usa la app): busca los modelos que generan imágenes
+let gemModels = null;
+async function geminiModels(key, diag){
+  if(gemModels) return gemModels;
+  const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000", { headers:{ "x-goog-api-key":key }, signal: AbortSignal.timeout(8000) }).catch(() => null);
+  const d = r?.ok ? await r.json().catch(() => ({})) : {};
+  const all = (d.models || []).filter(m => (m.supportedGenerationMethods || []).includes("generateContent")).map(m => m.name.replace(/^models\//, ""));
+  const list = all.filter(n => /image/.test(n) && !/imagen/.test(n)).sort((a, b) => (/flash/.test(b) - /flash/.test(a)) || (/preview/.test(a) - /preview/.test(b)));
+  diag.push("gemini list " + (r?.status || "err") + ": " + list.join(","));
+  if(r?.ok) gemModels = list;
+  return list;
+}
+async function gemini(q, t, style, deadline, diag){
+  const key = process.env.GEMINI_API_KEY; if(!key) return null;
+  const models = process.env.GEMINI_IMAGE_MODEL ? [process.env.GEMINI_IMAGE_MODEL] : (await geminiModels(key, diag)).slice(0, 3);
+  for(const m of models){
+    const left = deadline - Date.now(); if(left < 12000) break;
+    const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(m) + ":generateContent", { method:"POST",
+      headers:{ "content-type":"application/json", "x-goog-api-key":key }, signal: AbortSignal.timeout(left - 3000),
+      body: JSON.stringify({ contents:[{ role:"user", parts:[{ text:"Photo of " + q + ". " + style }] }],
+        generationConfig:{ responseModalities:["IMAGE"], imageConfig:{ aspectRatio: /^(cut|fill|ing)$/.test(t) ? "1:1" : "4:3" } } }) }).catch(e => ({ ok:false, status:"err:" + (e?.name || "") }));
+    const d = r.json ? await r.json().catch(() => ({})) : {};
+    const part = (d?.candidates?.[0]?.content?.parts || []).find(x => x.inlineData?.data);
+    diag.push("gemini " + m + " " + r.status + " " + (part ? part.inlineData.mimeType : String(d?.error?.message || d?.candidates?.[0]?.finishReason || "").slice(0, 220)));
+    if(part) return { buf: Buffer.from(part.inlineData.data, "base64"), type: part.inlineData.mimeType || "image/png", src: "gemini:" + m };
+    if(r.status === 429 || r.status === 403) break;
   }
   return null;
 }
@@ -101,8 +131,11 @@ module.exports = async function handler(req, res){
   const diag = [];
   try{
     const style = STYLES[t] || STYLES.plato;
-    let img = req.query?.p === "mealdb" ? null : await pollinations(q, seed, deadline, style, t, diag);
-    if(!img && t === "cut" && process.env.MEALDB !== "0") img = await mealdb(q).catch(e => { diag.push("mealdb " + (e?.name || "error")); return null; });
+    const only = String(req.query?.p || "");                       // diagnóstico: forzar una fuente
+    let img = null;
+    if(only === "gemini") img = await gemini(q, t, style, deadline, diag);
+    else if(!only || only === "pol") img = await pollinations(q, seed, deadline, style, t, diag);
+    if(!img && t === "cut" && process.env.MEALDB !== "0" && (!only || only === "mealdb")) img = await mealdb(q).catch(e => { diag.push("mealdb " + (e?.name || "error")); return null; });
     if(!img && process.env.PEXELS_API_KEY && !t) img = await pexels(q, process.env.PEXELS_API_KEY);
     const info = req.query?.info;
     if(!img){
