@@ -51,15 +51,15 @@ async function mealdb(q){
   return null;
 }
 
-async function pollinations(q, seed, deadline, style, t, diag){
+async function pollinations(q, seed, deadline, style, t, diag, model = "flux"){
   const [w, h] = SIZE[t] || [1024, 768];
   const prompt = encodeURIComponent((q + ", " + style).slice(0, 700));
-  const url = "https://image.pollinations.ai/prompt/" + prompt + "?width=" + w + "&height=" + h + "&nologo=true&private=true&enhance=false&model=flux&seed=" + seed;
+  const url = "https://image.pollinations.ai/prompt/" + prompt + "?width=" + w + "&height=" + h + "&nologo=true&private=true&enhance=false" + (model ? "&model=" + model : "") + "&seed=" + seed;
   for(let i = 0; i < 3; i++){
     const left = deadline - Date.now(); if(left < 8000) return null;
     const r = await fetch(url, { signal: AbortSignal.timeout(left - 2000) }).catch(e => ({ status: "err:" + (e?.name || "") }));
     const type = r.headers?.get("content-type") || "";
-    diag.push("pollinations " + r.status + " " + type.slice(0, 20) + (r.ok || !r.text ? "" : " " + (await r.text().catch(() => "")).slice(0, 200)));
+    diag.push("pollinations " + r.status + " " + type.slice(0, 20) + (r.ok || !r.text ? "" : " " + (await r.text().catch(() => "")).slice(0, 300)) + " " + [...(r.headers?.entries?.() || [])].filter(([k]) => /model|x-/.test(k)).map(([k, v]) => k + "=" + String(v).slice(0, 60)).join(" "));
     if(r.ok && /^image\//.test(type)){
       const buf = Buffer.from(await r.arrayBuffer());
       if(buf.length > 8000) return { buf, type, url, src: "pollinations" };
@@ -134,7 +134,7 @@ module.exports = async function handler(req, res){
     const only = String(req.query?.p || "");                       // diagnóstico: forzar una fuente
     let img = null;
     if(only === "gemini") img = await gemini(q, t, style, deadline, diag);
-    else if(!only || only === "pol") img = await pollinations(q, seed, deadline, style, t, diag);
+    else if(!only || only === "pol") img = await pollinations(q, seed, deadline, req.query?.st ? String(req.query.st).slice(0, 300) : style, t, diag, req.query?.m != null ? String(req.query.m).replace(/[^a-z0-9-]/gi, "") : "flux");
     if(!img && t === "cut" && process.env.MEALDB !== "0" && (!only || only === "mealdb")) img = await mealdb(q).catch(e => { diag.push("mealdb " + (e?.name || "error")); return null; });
     if(!img && process.env.PEXELS_API_KEY && !t) img = await pexels(q, process.env.PEXELS_API_KEY);
     const info = req.query?.info;
