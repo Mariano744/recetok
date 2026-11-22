@@ -1,8 +1,9 @@
 // Foto realista. GET /api/foto?q=<descripción>&s=<semilla>&t=<tipo>
 // t=plato (por defecto): el plato servido · t=paso: la olla/sartén en ese paso · t=mise: todos los ingredientes listos
 // t=ing: un ingrediente en un bol · t=cut: un ingrediente solo, sobre fondo blanco (la app lo recorta) · t=fill: el contenido de la olla visto desde arriba
-// Fuentes: 1) t=cut: foto recortada de TheMealDB si el ingrediente es común (sale al instante)
-//          2) Pollinations (gratis, sin clave; limita ~1 imagen cada 15 s)
+// Fuentes: 1) Pollinations (gratis, sin clave; limita ~1 imagen cada 15 s)
+//          2) t=cut, si la IA falla: foto recortada de TheMealDB cuando el nombre coincide exacto (solo verduras, frutas y especias:
+//             carnes, lácteos, salsas y aceites ahí suelen ser paquetes con marca)
 //          3) Pexels (solo platos, si existe PEXELS_API_KEY)
 // La respuesta se guarda en la CDN de Vercel, así la misma foto no se vuelve a generar.
 // Diagnóstico: &info=1 (tamaño y fuente) · &info=b64 (además la imagen en base64)
@@ -30,18 +31,11 @@ async function mealNames(){
 }
 const words = s => String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z ]/g, " ").split(/\s+/).filter(Boolean)
   .map(w => w.length > 3 ? w.replace(/(oes|ies)$/, m => m === "ies" ? "y" : "o").replace(/s$/, "") : w);
+const PACKAGED = /chicken|beef|pork|lamb|turkey|duck|mince|bacon|sausage|ham|steak|fillet|breast|thigh|wing|fish|salmon|tuna|prawn|shrimp|cream|milk|cheese|butter|yogurt|yoghurt|tofu|stock|broth|sauce|ketchup|mayo|mustard|paste|oil|vinegar|pasta|noodle|spaghetti|penne|bread|tortilla|wine|beer|juice|chocolate|biscuit|cereal|flour|sugar|rice|bean|lentil|can|tin/;
 function bestMeal(q, list){
-  const qw = words(q); if(!qw.length) return null;
-  const key = qw.join(" ");
-  let best = null, score = 0;
-  for(const n of list){
-    const nw = words(n); if(!nw.length) continue;
-    if(nw.join(" ") === key) return n;                                  // igual
-    if(!nw.every(w => qw.includes(w))) continue;                        // todas sus palabras están en lo pedido
-    const s = nw.length * 10 - (qw.length - nw.length) - (nw.includes(qw[qw.length-1]) ? 0 : 5);
-    if(s > score){ score = s; best = n; }
-  }
-  return score >= 5 ? best : null;
+  const key = words(q).join(" ");
+  if(!key || PACKAGED.test(key)) return null;
+  return list.find(n => words(n).join(" ") === key) || null;        // solo si coincide exacto (ej. "garlic", "red onion")
 }
 async function mealdb(q){
   const name = bestMeal(q, await mealNames());
@@ -107,9 +101,8 @@ module.exports = async function handler(req, res){
   const diag = [];
   try{
     const style = STYLES[t] || STYLES.plato;
-    let img = null;
-    if(t === "cut" && process.env.MEALDB !== "0") img = await mealdb(q).catch(e => { diag.push("mealdb " + (e?.name || "error")); return null; });
-    if(!img) img = await pollinations(q, seed, deadline, style, t, diag);
+    let img = req.query?.p === "mealdb" ? null : await pollinations(q, seed, deadline, style, t, diag);
+    if(!img && t === "cut" && process.env.MEALDB !== "0") img = await mealdb(q).catch(e => { diag.push("mealdb " + (e?.name || "error")); return null; });
     if(!img && process.env.PEXELS_API_KEY && !t) img = await pexels(q, process.env.PEXELS_API_KEY);
     const info = req.query?.info;
     if(!img){
