@@ -20,6 +20,7 @@ Ya existe el proyecto **recetok** en tu equipo de Vercel ("Mariano's team"), con
 1. Crea una clave en https://console.anthropic.com (sección *API Keys*) y carga saldo.
 2. En Vercel: proyecto **recetok** → *Settings → Environment Variables* → agrega
    - `GEMINI_API_KEY` = tu clave gratis de https://aistudio.google.com/apikey (marca *Production* y *Preview*).
+   - Opcional, para fotos realistas y rápidas (platos, pasos e ingredientes del modo cocina): `POLLINATIONS_API_KEY` = tu clave gratis de https://enter.pollinations.ai (entra con tu cuenta de GitHub o Google y copia la clave secreta, la que empieza con `sk_`). Sin esta clave las fotos salen con un modelo básico, con logo y como máximo una cada 45 segundos.
 3. `APP_CODE` ya está creada. Es el código que la app te pide una vez por dispositivo. Puedes cambiarlo ahí mismo cuando quieras.
 4. Vuelve a publicar (*Deployments → ⋯ → Redeploy*) para que tome la clave.
 
