@@ -188,7 +188,8 @@ module.exports = async function handler(req, res){
     // Ingredientes: foto real de dominio público elegida por Gemini (solo para la app, con su código de acceso)
     if(!img && t === "cut" && process.env.GEMINI_API_KEY){
       const code = req.headers["x-app-code"], ip = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || "local";
-      if(process.env.APP_CODE && code !== process.env.APP_CODE) diag.push("stock: falta el código de la app");
+      const probe = info && process.env.VERCEL_ENV === "preview";            // diagnóstico solo en versiones de prueba
+      if(process.env.APP_CODE && code !== process.env.APP_CODE && !probe) diag.push("stock: falta el código de la app");
       else if(limited(ip)) diag.push("stock: demasiadas búsquedas");
       else img = await stock(q, String(req.query?.es || "").replace(/\s+/g, " ").trim().slice(0, 60), diag).catch(e => { diag.push("stock " + (e?.message || e)); return null; });
     }
