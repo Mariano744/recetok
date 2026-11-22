@@ -736,43 +736,252 @@ ol.steps li .mins{display:inline-block;margin-left:8px;font:500 .72rem var(--f-n
 .ck-nav #gList{flex:0 0 56px}.ck-nav #gList[aria-pressed="true"]{background:var(--brand-soft);border-color:var(--brand);color:var(--brand)}
 .ck-nav .go{flex:2;background:var(--brand);border-color:var(--brand);color:var(--on-brand)}
 .ck-nav button[disabled]{opacity:.4}
-/* Escena realista del paso: la foto de cómo debe verse, vapor, y los ingredientes que caen */
-.ck-mise{aspect-ratio:16/9}
-.ck-stage{position:relative;aspect-ratio:4/3;border-radius:20px;overflow:hidden;margin:0 0 16px;background:linear-gradient(110deg,var(--brand-soft) 35%,var(--surface) 50%,var(--brand-soft) 65%) 0 0/250% 100%;animation:fshim 1.8s linear infinite;box-shadow:var(--shadow)}
-.ck-stage:has(.ck-scene:not(.wait)){animation:none;background:#1d1a17}
-.ck-scene{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:kenburns 18s ease-in-out infinite alternate;transform-origin:50% 55%}
-.act-mezclar .ck-scene,.act-licuar .ck-scene{animation:stir 6s ease-in-out infinite alternate}
-.ck-scene.wait{opacity:0}.ck-scene:not(.wait){animation-play-state:running;transition:opacity .6s;opacity:1}
-@keyframes kenburns{from{transform:scale(1.02)}to{transform:scale(1.12) translate(-1.5%,-1%)}}
-@keyframes stir{from{transform:scale(1.08) rotate(-1.6deg)}to{transform:scale(1.1) rotate(1.6deg)}}
-.ck-stage.splash .ck-scene{animation:splash .45s ease-out}
-@keyframes splash{40%{transform:scale(1.07) translateY(4px)}100%{transform:scale(1.04)}}
+/* =================== Modo cocina como videojuego: cocina dibujada e ingredientes reales recortados =================== */
 .ck-steam{position:absolute;inset:0;pointer-events:none}
 .ck-steam i{position:absolute;bottom:-20%;width:42%;height:70%;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.38),rgba(255,255,255,0));filter:blur(14px);animation:steam 5.5s ease-in infinite;opacity:0}
 .ck-steam i:nth-child(1){left:8%}.ck-steam i:nth-child(2){left:32%;animation-delay:1.8s}.ck-steam i:nth-child(3){left:56%;animation-delay:3.6s}
 @keyframes steam{0%{transform:translateY(0) scale(.7);opacity:0}25%{opacity:.85}100%{transform:translateY(-75%) scale(1.25);opacity:0}}
-.ck-stlab,.ck-cnt{position:absolute;font:600 .74rem var(--f-body);padding:5px 10px;border-radius:999px;background:rgba(20,18,16,.62);color:#fff;backdrop-filter:blur(6px)}
-.ck-stlab{left:10px;top:10px}.ck-cnt{right:10px;bottom:10px;font-family:var(--f-num)}
-.ck-pop{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);font:700 1.25rem var(--f-display);color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.6);opacity:0;pointer-events:none;white-space:nowrap}
-.ck-pop.show{animation:popin 1.3s ease-out}
-@keyframes popin{0%{opacity:0;transform:translate(-50%,-30%) scale(.8)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-90%)}}
-.ck-tray{margin-bottom:14px}
-.ck-tcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;margin-top:8px}
-.ck-ingc{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px 12px 11px;min-height:86px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);text-align:left;cursor:pointer;font:500 .84rem/1.25 var(--f-body);transition:transform .15s,border-color .2s,opacity .2s}
-.ck-ingc:active{transform:scale(.96)}
-.ck-ingc b{font:600 .84rem var(--f-num);color:var(--brand);margin-top:4px;padding:0 3px}.ck-ingc>span{padding:0 3px}.ck-ingc small{color:var(--muted);font:500 .72rem var(--f-num);padding:0 3px}
-.ck-ingc b{font-size:1.05rem!important;margin-top:0!important}
-.ck-ingok{position:absolute;right:8px;top:8px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--brand);color:var(--on-brand);opacity:0;transform:scale(.6);transition:opacity .2s,transform .2s}
-.ck-ingok svg{width:15px;height:15px;stroke-width:2.8}.ck-ingc.in{background:var(--brand-soft)}.ck-ingc.in .ck-ingok{transform:scale(1)}
-.ck-ingc.in{border-color:var(--brand)}.ck-ingc.in .ck-ingok{opacity:1}.ck-ingc.in>span,.ck-ingc.in b{opacity:.6}
-.ck-fly{position:fixed;z-index:80;border-radius:14px;overflow:hidden;pointer-events:none;box-shadow:0 10px 24px rgba(0,0,0,.3);background:var(--surface);border:1px solid var(--brand);padding:12px;display:flex;flex-direction:column;font:500 .84rem var(--f-body);color:var(--ink)}
-.ck-fly img{width:100%;height:100%;object-fit:cover}.ck-fly .ck-ingok{display:none}
+.ck-pop{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);font:700 1.3rem var(--f-display);color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.7);opacity:0;pointer-events:none;white-space:nowrap;z-index:6}
+.ck-pop.show{animation:popin 1.4s ease-out}
+@keyframes popin{0%{opacity:0;transform:translate(-50%,-30%) scale(.8)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-90%)}}
 .ck-film{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
 .ck-film figure{margin:0;position:relative;flex:0 0 92px;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--brand-soft)}
 .ck-film img{width:100%;height:100%;object-fit:cover}.ck-film img.wait{opacity:0}
 .ck-film figcaption{position:absolute;left:5px;top:5px;font:600 .7rem var(--f-num);background:rgba(20,18,16,.6);color:#fff;border-radius:6px;padding:1px 6px}
-@media (min-width:760px){.ck-body{max-width:900px}.ck-step{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);column-gap:22px;align-items:start}.ck-step>.ck-meta,.ck-step>.ck-stage{grid-column:1}.ck-step>*{grid-column:2}.ck-step>.ck-stage{grid-row:2 / span 6;position:sticky;top:0}.ck-step>.ck-meta{grid-column:1 / -1}}
-@media (prefers-reduced-motion:reduce){.tmr.alarm,.ck-scene,.ck-steam i,.ck-stage.splash .ck-scene{animation:none}}
+
+.gk-play{margin:0 0 14px}
+.gk{--vx:50%;--vy:53%;--vw:58%;position:relative;aspect-ratio:4/3;border-radius:20px;overflow:hidden;box-shadow:var(--shadow);background:#141516;isolation:isolate;
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.gk svg{width:100%;height:100%;stroke:none;fill:initial}
+.gk-surf{position:absolute;inset:0}
+.gk.stove .gk-surf{background:
+  radial-gradient(130% 80% at 18% -12%,rgba(255,255,255,.16),transparent 52%),
+  radial-gradient(90% 70% at 100% 110%,rgba(255,255,255,.05),transparent 60%),
+  radial-gradient(circle at 50% 55%,#2d2e31,#18191b 72%)}
+.gk.stove .gk-surf::after{content:"";position:absolute;inset:0;opacity:.35;mix-blend-mode:overlay;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E")}
+.gk.counter .gk-surf{background:
+  radial-gradient(120% 90% at 25% -10%,rgba(255,255,255,.28),transparent 55%),
+  repeating-linear-gradient(0deg,rgba(70,38,14,.32) 0 2px,transparent 2px 33.4%),
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='600'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.003 .09' numOctaves='4' seed='9'/%3E%3CfeColorMatrix values='0 0 0 0 .38 0 0 0 0 .21 0 0 0 0 .08 1.7 0 0 0 -.7'/%3E%3C/filter%3E%3Crect width='800' height='600' fill='%23c8965c'/%3E%3Crect width='800' height='600' filter='url(%23w)'/%3E%3C/svg%3E") center/cover}
+.gk-burner,.gk-vessel{position:absolute;left:var(--vx);top:var(--vy);transform:translate(-50%,-50%)}
+.gk-burner{width:calc(var(--vw) * 1.34);aspect-ratio:1;pointer-events:none}
+.gk-grate{position:absolute;inset:0;border-radius:50%;filter:drop-shadow(0 4px 3px rgba(0,0,0,.7));
+  background:linear-gradient(90deg,transparent 46.8%,#47484c 46.8% 53.2%,transparent 53.2%),linear-gradient(0deg,transparent 46.8%,#47484c 46.8% 53.2%,transparent 53.2%),
+  radial-gradient(circle,transparent 0 64%,#3d3e42 64.5% 69%,transparent 69.5%)}
+.gk-glow{position:absolute;inset:-6%;border-radius:50%;opacity:0;transition:opacity .5s;background:radial-gradient(circle,rgba(70,130,255,.0) 34%,rgba(70,130,255,.45) 44%,rgba(255,150,60,.16) 52%,transparent 64%)}
+.gk-fl{position:absolute;inset:4%;opacity:0;transition:opacity .35s}
+.gk-fl i{position:absolute;inset:0;transform:rotate(var(--a))}
+.gk-fl i::before{content:"";position:absolute;left:46%;top:0;width:8%;height:10%;border-radius:50% 50% 45% 45%/72% 72% 28% 28%;transform-origin:50% 100%;
+  background:radial-gradient(ellipse at 50% 92%,rgba(255,255,255,.95),rgba(140,200,255,.92) 22%,rgba(50,110,255,.8) 52%,rgba(50,110,255,0) 78%);
+  filter:blur(.6px);animation:flick .13s ease-in-out infinite alternate;animation-delay:var(--d)}
+@keyframes flick{from{transform:scaleY(calc(var(--lv) * .84)) scaleX(1.06)}to{transform:scaleY(calc(var(--lv) * 1.08)) scaleX(.94)}}
+.gk:not([data-fire="0"]) .gk-fl,.gk:not([data-fire="0"]) .gk-glow{opacity:1}
+.gk-vessel{width:var(--vw);aspect-ratio:1;border-radius:50%;z-index:2;transition:transform .7s cubic-bezier(.3,1.2,.5,1)}
+.gk-body{position:absolute;inset:0;border-radius:inherit}
+.gk-in{position:absolute;inset:7%;border-radius:50%;overflow:hidden}
+.gk-base,.gk-water,.gk-liqs,.gk-liq,.gk-mix,.gk-shade,.gk-res,.gk-old,.gk-bub,.gk-sz{position:absolute;inset:0;border-radius:inherit}
+.gk-res,.gk-old{width:100%;height:100%;object-fit:cover;transform:scale(1.1)}
+.gk-res{opacity:max(var(--p,0),var(--tp,0));transition:opacity .6s}
+.gk-res.gk-dish{opacity:var(--d,0);transform:scale(1.12)}
+.gk-res.wait,.gk-old.wait,.gk-res.broken,.gk-old.broken{opacity:0!important}
+.gk-shade{pointer-events:none;box-shadow:inset 0 14px 28px rgba(0,0,0,.55),inset 0 -6px 14px rgba(255,255,255,.12);z-index:3}
+.gk-water{background:radial-gradient(circle at 36% 30%,rgba(255,255,255,.4),transparent 34%),repeating-radial-gradient(circle at 50% 50%,rgba(255,255,255,.07) 0 3%,transparent 3% 7%),radial-gradient(circle,rgba(150,190,205,.62),rgba(95,135,150,.78));animation:ripple 3.5s ease-in-out infinite alternate}
+.gk-liq{background:radial-gradient(circle at 38% 32%,rgba(255,255,255,.35),transparent 30%),radial-gradient(circle,var(--c) 0 62%,transparent 92%);animation:ripple 4s ease-in-out infinite alternate}
+.gk-liq.new{animation:liqin .9s ease-out,ripple 4s ease-in-out .9s infinite alternate}
+@keyframes liqin{from{transform:scale(.2);opacity:0}}
+@keyframes ripple{from{transform:scale(1) rotate(0)}to{transform:scale(1.03) rotate(6deg)}}
+.gk-mix{transform:rotate(var(--rot,0deg))}
+.gk-pc{position:absolute;transform:translate(-50%,-50%) rotate(var(--r,0deg));filter:drop-shadow(0 3px 3px rgba(0,0,0,.4));transition:filter 1.2s,opacity .5s;pointer-events:none}
+.gk-pc.wait,.gk-pc.broken{width:12%!important;aspect-ratio:1.25;clip-path:none!important;border-radius:46% 54% 50% 50%/56% 44% 56% 44%;
+  background:radial-gradient(circle at 34% 30%,rgba(255,255,255,.5),transparent 42%),radial-gradient(circle at 62% 72%,rgba(0,0,0,.2),transparent 60%),var(--c,#c9a27a)}
+.gk-bit.wait,.gk-bit.broken{width:6%!important}
+.gk-pc.raw{border-radius:50%;aspect-ratio:1;object-fit:cover}
+.gk-pc.new{animation:pcin .5s cubic-bezier(.3,1.5,.5,1)}
+@keyframes pcin{from{transform:translate(-50%,-80%) rotate(var(--r,0deg)) scale(.35);opacity:0}}
+.gk.brown .gk-pc{filter:drop-shadow(0 3px 3px rgba(0,0,0,.4)) sepia(.55) saturate(1.6) brightness(.8) hue-rotate(-10deg)}
+.gk.done:not(.v-tabla) .gk-pc{filter:drop-shadow(0 2px 2px rgba(0,0,0,.35)) saturate(1.1)}
+.gk-dust{position:absolute;width:40%;aspect-ratio:1;transform:translate(-50%,-50%) rotate(var(--r,0deg));pointer-events:none;
+  background:radial-gradient(circle,var(--c) 0 1.4px,transparent 1.9px) 0 0/9px 9px,radial-gradient(circle,var(--c) 0 1px,transparent 1.5px) 4px 5px/9px 9px;
+  -webkit-mask:radial-gradient(circle,#000 25%,transparent 68%);mask:radial-gradient(circle,#000 25%,transparent 68%)}
+.gk-bub,.gk-sz{opacity:0;transition:opacity .8s;pointer-events:none;z-index:2}
+.gk-bub i{position:absolute;width:var(--s);aspect-ratio:1;border-radius:50%;border:1.5px solid rgba(255,255,255,.75);
+  background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.7),rgba(255,255,255,.06) 60%);animation:bub 1.1s ease-in infinite;animation-delay:var(--d);opacity:0}
+@keyframes bub{0%{transform:scale(.2);opacity:0}30%{opacity:.95}85%{transform:scale(1);opacity:.85}100%{transform:scale(1.25);opacity:0}}
+.gk.wet[data-fire="1"] .gk-bub{opacity:.45}.gk.wet[data-fire="2"] .gk-bub,.gk.wet[data-fire="3"] .gk-bub,.gk.wet[data-fire="4"] .gk-bub{opacity:1}
+.gk[data-fire="4"] .gk-bub i{animation-duration:.7s}
+.gk-sz i{position:absolute;width:3px;height:3px;border-radius:50%;background:#fff8dc;box-shadow:0 0 4px #fff;animation:sz .45s steps(2) infinite;animation-delay:var(--d)}
+@keyframes sz{0%{opacity:0}50%{opacity:1}100%{opacity:0;transform:translateY(-6px)}}
+.gk.v-sarten.full:not([data-fire="0"]) .gk-sz{opacity:1}
+.gk .ck-steam{z-index:4;opacity:0;transition:opacity 1.2s;left:calc(var(--vx) - 30%);width:60%;top:-10%;height:80%}
+.gk.full[data-fire="2"] .ck-steam,.gk.full[data-fire="3"] .ck-steam,.gk.full[data-fire="4"] .ck-steam,.gk.wet[data-fire="3"] .ck-steam,.gk.wet[data-fire="4"] .ck-steam{opacity:1}
+.gk.spin .gk-mix,.gk.spin .gk-liqs{animation:spin .32s linear infinite;filter:blur(1.6px)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* olla de acero */
+.v-olla .gk-body{background:conic-gradient(from 200deg,#f6f8f9,#9ea7ad 10%,#e9edef 22%,#79828a 36%,#dfe4e7 50%,#949da3 63%,#f3f5f6 76%,#848d93 88%,#f6f8f9);
+  box-shadow:0 16px 28px rgba(0,0,0,.6),0 4px 8px rgba(0,0,0,.45),inset 0 0 0 1.5px rgba(255,255,255,.7),inset 0 0 0 5px rgba(0,0,0,.12)}
+.v-olla .gk-body::before,.v-olla .gk-body::after{content:"";position:absolute;top:43%;width:15%;height:14%;border-radius:10px;background:linear-gradient(#55565a,#18191b);box-shadow:0 4px 6px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.25)}
+.v-olla .gk-body::before{left:-11%}.v-olla .gk-body::after{right:-11%}
+.v-olla .gk-in{inset:6.5%}
+.v-olla .gk-base{background:radial-gradient(circle at 46% 40%,#e2e6e8,#aab2b7 40%,#7b848a 75%,#5b6369)}
+/* sartén antiadherente */
+.gk.v-sarten{--vw:55%;--vx:43%}
+.v-sarten .gk-body{background:radial-gradient(circle,#3b3b3d 0 85%,#a3a8ac 87%,#2c2c2e 90%,#62666a 95%,#1b1b1d 100%);box-shadow:0 14px 24px rgba(0,0,0,.6),0 3px 6px rgba(0,0,0,.45)}
+.v-sarten .gk-body::after{content:"";position:absolute;left:95%;top:44%;width:68%;height:12%;border-radius:6px 40px 40px 6px;background:linear-gradient(#45464a,#0f0f10 70%);box-shadow:0 6px 10px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.2)}
+.v-sarten .gk-in{inset:8.5%}
+.v-sarten .gk-base{background:radial-gradient(circle at 42% 36%,#4d4d50,#2b2b2d 55%,#161617)}
+/* bol de cerámica */
+.gk.v-bol{--vw:60%}
+.v-bol .gk-body{background:radial-gradient(circle at 38% 30%,#fff,#f2eee9 40%,#dad3ca 75%,#c2b9ae);box-shadow:0 16px 26px rgba(40,25,10,.38),0 3px 6px rgba(40,25,10,.25)}
+.v-bol .gk-in{inset:7%}
+.v-bol .gk-base{background:radial-gradient(circle at 55% 60%,#fdfcfa,#ece7e0 60%,#d6cec3)}
+.v-bol .gk-shade{box-shadow:inset 0 12px 22px rgba(70,50,30,.32),inset 0 -4px 10px rgba(255,255,255,.4)}
+/* licuadora vista desde arriba */
+.gk.v-licuadora{--vw:54%}
+.v-licuadora .gk-vessel{border-radius:22%}
+.v-licuadora .gk-body{background:linear-gradient(145deg,#45484e,#17181b);box-shadow:0 16px 26px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.2)}
+.v-licuadora .gk-in{inset:9%;border-radius:50%}
+.v-licuadora .gk-base{background:radial-gradient(circle at 40% 35%,rgba(255,255,255,.6),rgba(205,222,230,.5) 50%,rgba(150,170,180,.7)),#cfd8dc}
+.v-licuadora .gk-base::before,.v-licuadora .gk-base::after{content:"";position:absolute;left:50%;top:50%;width:48%;height:7%;border-radius:6px;background:linear-gradient(#f2f4f5,#8d969b);transform:translate(-50%,-50%) rotate(25deg);box-shadow:0 2px 3px rgba(0,0,0,.35)}
+.v-licuadora .gk-base::after{transform:translate(-50%,-50%) rotate(115deg)}
+.v-licuadora .gk-in::after{content:"";position:absolute;inset:0;border-radius:50%;background:linear-gradient(130deg,rgba(255,255,255,.5),transparent 32%,transparent 70%,rgba(255,255,255,.18));pointer-events:none;z-index:4}
+/* fuente de horno */
+.gk.v-fuente{--vw:70%}
+.v-fuente .gk-vessel{aspect-ratio:4/3;border-radius:16%/21%}
+.v-fuente .gk-body{background:linear-gradient(160deg,#f7f0e7,#e3d5c3 60%,#cbb7a0);box-shadow:0 16px 26px rgba(0,0,0,.42),inset 0 0 0 2px rgba(255,255,255,.6)}
+.v-fuente .gk-in{inset:9%;border-radius:12%/16%}
+.v-fuente .gk-base{background:linear-gradient(160deg,#efe6da,#d8c7b2)}
+.v-fuente .gk-shade{box-shadow:inset 0 10px 20px rgba(70,45,20,.38)}
+/* tabla de picar */
+.gk.v-tabla{--vw:80%}
+.v-tabla .gk-vessel{aspect-ratio:3/2;border-radius:7%/10%}
+.v-tabla .gk-body{background:
+  radial-gradient(120% 90% at 30% 0%,rgba(255,255,255,.35),transparent 60%),
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='400'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.004 .12' numOctaves='3' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 .55 0 0 0 0 .35 0 0 0 0 .16 1.5 0 0 0 -.68'/%3E%3C/filter%3E%3Crect width='600' height='400' fill='%23dfb47c'/%3E%3Crect width='600' height='400' filter='url(%23w)'/%3E%3C/svg%3E") center/cover;
+  box-shadow:0 14px 24px rgba(40,22,8,.45),inset 0 0 0 2px rgba(255,255,255,.18),inset 0 -6px 0 rgba(120,70,30,.35)}
+.v-tabla .gk-body::after{content:"";position:absolute;right:4.5%;top:43%;width:6.5%;aspect-ratio:1;border-radius:50%;background:#7a4f2a;box-shadow:inset 0 3px 5px rgba(0,0,0,.6)}
+.v-tabla .gk-in{inset:0;border-radius:inherit;overflow:visible}
+.v-tabla .gk-shade{display:none}
+.gk-item{position:absolute;width:38%;aspect-ratio:1;transform:translate(-50%,-50%);pointer-events:none}
+.gk-item img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 5px 4px rgba(40,20,5,.4));transition:transform .2s}
+.gk-item img.wait,.gk-item img.broken{inset:24%;width:52%;height:52%;border-radius:46% 54% 50% 50%/56% 44% 56% 44%;background:radial-gradient(circle at 34% 30%,rgba(255,255,255,.5),transparent 42%),var(--c,#c9a27a)}
+.gk-bit{width:30%}
+.gk-knife{position:absolute;width:58%;aspect-ratio:200/60;left:var(--kx,62%);top:var(--ky,30%);transform:translate(-12%,-95%) rotate(-10deg);transform-origin:88% 60%;z-index:5;pointer-events:none;filter:drop-shadow(0 8px 6px rgba(0,0,0,.35));transition:left .25s,top .25s}
+.gk-knife.chop{animation:chop .2s ease-in}
+@keyframes chop{50%{transform:translate(-12%,-45%) rotate(3deg)}}
+/* plato */
+.gk.v-plato{--vw:62%}
+.v-plato .gk-body{background:radial-gradient(circle,#fbfaf8 0 57%,#e8e3dc 59.5%,#fdfcfb 63% 89%,#e6e0d8 94%,#cfc8bf);box-shadow:0 14px 24px rgba(40,25,10,.32)}
+.v-plato .gk-in{inset:19%}
+.v-plato .gk-base{background:#fbfaf8}
+.v-plato .gk-shade{box-shadow:inset 0 3px 8px rgba(60,40,20,.12)}
+/* recipiente de vidrio */
+.gk.v-recipiente{--vw:64%}
+.v-recipiente .gk-vessel{aspect-ratio:4/3;border-radius:14%}
+.v-recipiente .gk-body{background:linear-gradient(150deg,rgba(255,255,255,.82),rgba(205,222,228,.62));box-shadow:0 14px 24px rgba(40,25,10,.3),inset 0 0 0 3px rgba(255,255,255,.85)}
+.v-recipiente .gk-in{inset:7%;border-radius:11%}
+.v-recipiente .gk-base{background:linear-gradient(150deg,#f4f7f8,#dbe4e7)}
+.v-recipiente .gk-shade{box-shadow:inset 0 8px 16px rgba(40,60,70,.2)}
+/* tapa */
+.gk-lid{position:absolute;inset:-2%;border-radius:inherit;z-index:6;pointer-events:none;opacity:0;transform:translateY(-130%) rotate(-8deg);transition:transform .7s cubic-bezier(.3,1.3,.5,1),opacity .3s;
+  background:radial-gradient(circle at 35% 28%,rgba(255,255,255,.55),transparent 40%),linear-gradient(150deg,rgba(185,205,215,.72),rgba(120,150,165,.62));box-shadow:inset 0 0 0 4px rgba(255,255,255,.6),0 12px 20px rgba(0,0,0,.35)}
+.gk-lid i{position:absolute;left:50%;top:50%;width:18%;aspect-ratio:1.6;border-radius:40%;transform:translate(-50%,-50%);background:linear-gradient(#45464a,#141516);box-shadow:0 3px 5px rgba(0,0,0,.45)}
+.gk.lid .gk-lid{opacity:1;transform:none}
+/* horno */
+.gk-ovenfx{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .7s;z-index:5}
+.gk.oven .gk-ovenfx{opacity:1}
+.gk-ovenfx::before{content:"";position:absolute;left:9%;right:9%;top:8%;height:4%;border-radius:10px;background:repeating-linear-gradient(90deg,#ff5a1f 0 5%,#ffc061 5% 7%,#ff5a1f 7% 12%);filter:blur(.8px) drop-shadow(0 0 10px #ff6a00);animation:ovglow 1.6s ease-in-out infinite alternate}
+.gk-ovenfx::after{content:"";position:absolute;inset:0;border:12px solid #1d1e20;border-radius:20px;background:linear-gradient(118deg,rgba(255,255,255,.16),transparent 26%,transparent 72%,rgba(255,255,255,.07));box-shadow:inset 0 0 50px rgba(0,0,0,.65)}
+@keyframes ovglow{from{opacity:.75}to{opacity:1}}
+.gk.oven .gk-surf{background:radial-gradient(ellipse at 50% 8%,rgba(255,150,60,.7),transparent 55%),radial-gradient(ellipse at 50% 105%,rgba(255,110,30,.4),transparent 60%),linear-gradient(#2e1c11,#100b08)}
+.gk.oven .gk-surf::before{content:"";position:absolute;left:7%;right:7%;top:30%;bottom:16%;background:repeating-linear-gradient(90deg,rgba(210,210,210,.4) 0 2px,transparent 2px 6.5%)}
+.gk.oven .gk-vessel{transform:translate(-50%,-47%) scale(.8)}
+/* cuchara de palo */
+.gk-spoon{position:absolute;left:var(--sx,72%);top:var(--sy,38%);width:15%;aspect-ratio:40/150;transform:translate(-50%,-14%) rotate(var(--sr,30deg));transform-origin:50% 14%;
+  pointer-events:none;opacity:0;transition:opacity .25s;z-index:7;filter:drop-shadow(0 6px 6px rgba(0,0,0,.45))}
+.gk.stir .gk-spoon{opacity:1}
+/* etiquetas, perilla y pista */
+.gk-lab,.gk-cnt{position:absolute;top:10px;font:600 .74rem var(--f-body);padding:5px 10px;border-radius:999px;background:rgba(20,18,16,.62);color:#fff;backdrop-filter:blur(6px);z-index:8;pointer-events:none}
+.gk-lab{left:10px}.gk-cnt{right:10px;font-family:var(--f-num)}
+.gk-hint{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);max-width:calc(100% - 120px);font:600 .78rem/1.25 var(--f-body);padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.9);color:#1d1d1f;z-index:8;pointer-events:none;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,.25)}
+.gk.done .gk-hint{background:var(--brand);color:var(--on-brand)}
+.gk-knob{position:absolute;left:10px;bottom:10px;z-index:9;width:58px;height:58px;border-radius:50%;border:0;padding:0;cursor:pointer;display:grid;place-items:center;
+  background:radial-gradient(circle at 40% 32%,#f4f5f6,#b9bec2 45%,#7b8186);box-shadow:0 5px 10px rgba(0,0,0,.55),inset 0 -3px 5px rgba(0,0,0,.25)}
+.gk-knob i{position:absolute;inset:16%;border-radius:50%;background:radial-gradient(circle at 45% 35%,#3d3f43,#141516);transform:rotate(calc(var(--k) * -55deg));transition:transform .3s cubic-bezier(.3,1.4,.5,1)}
+.gk-knob i::after{content:"";position:absolute;left:46%;top:6%;width:8%;height:34%;border-radius:4px;background:#ff6a3d}
+.gk-knob b{position:absolute;top:-17px;left:50%;transform:translateX(-50%);font:700 .6rem var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:#fff;text-shadow:0 1px 3px #000;white-space:nowrap}
+.gk-knob:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.gk.over .gk-vessel{transform:translate(-50%,-50%) scale(1.04)}
+.gk.over .gk-in{box-shadow:0 0 0 4px rgba(255,255,255,.65)}
+.gk[data-game="revolver"]:not(.done) .gk-vessel,.gk[data-game="licuar"]:not(.done) .gk-vessel,.gk[data-game="saltear"]:not(.done) .gk-vessel,.gk[data-game="picar"] .gk-vessel{touch-action:none;cursor:pointer}
+/* bandeja de ingredientes */
+.gk-tray{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px;margin:10px 0}
+.gk-tok{position:relative;display:flex;flex-direction:column;align-items:center;gap:1px;padding:8px 4px 9px;border-radius:16px;border:1px solid var(--line);
+  background:linear-gradient(180deg,var(--surface),color-mix(in srgb,var(--surface) 88%,#c8965c));color:var(--ink);font:500 .76rem/1.2 var(--f-body);text-align:center;cursor:grab;touch-action:none;transition:transform .15s,opacity .25s}
+.gk-tok:active{transform:scale(.95)}
+.gk-tok b{font:700 .84rem var(--f-num);color:var(--brand)}
+.gk-tok>span:last-child{max-width:100%;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.gk-tim{width:70px;height:70px;display:grid;place-items:center;position:relative}
+.gk-tim::before{content:"";position:absolute;inset:12%;border-radius:50%;background:linear-gradient(110deg,var(--brand-soft) 35%,var(--surface) 50%,var(--brand-soft) 65%) 0 0/250% 100%;animation:fshim 1.8s linear infinite;opacity:0;transition:opacity .3s}
+.gk-tim:has(img.wait)::before,.gk-tim:has(img.broken)::before{opacity:1}
+.gk-tim:has(img.broken)::before{animation:none;background:radial-gradient(circle at 34% 30%,rgba(255,255,255,.45),transparent 45%),var(--c,var(--brand-soft))}
+.gk-tim img{position:relative;max-width:100%;max-height:100%;object-fit:contain;filter:drop-shadow(0 5px 5px rgba(0,0,0,.3));pointer-events:none}
+.gk-tim img.raw{width:100%;height:100%;object-fit:cover;border-radius:50%;box-shadow:0 0 0 3px #fff,0 4px 10px rgba(0,0,0,.25)}
+.gk-tim img.wait,.gk-tim img.broken{opacity:0}
+.gk-tim .gk-ini{position:absolute;inset:0;display:grid;place-items:center;font:700 1.5rem var(--f-display);color:var(--brand);opacity:0}
+.gk-tim:has(img.broken) .gk-ini{opacity:1;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.35)}.gk-tim:has(img.wait) .gk-ini{opacity:.55}
+.gk-tok.in{opacity:.42;cursor:default}
+.gk-tok.in::after{content:"✓";position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--brand);color:var(--on-brand);font:700 .8rem var(--f-body)}
+.gk-drag{position:fixed;z-index:90;width:84px;height:84px;margin:0;pointer-events:none;transform:translate(-50%,-50%) rotate(-8deg) scale(1.15);filter:drop-shadow(0 14px 14px rgba(0,0,0,.38))}
+.gk-drag img{width:100%;height:100%;object-fit:contain}.gk-drag img.raw{object-fit:cover;border-radius:50%}
+/* acción del minijuego */
+.gk-act{display:flex;gap:10px;align-items:center;margin-top:10px}
+.gk-btn{position:relative;flex:1;min-height:54px;border-radius:14px;border:0;overflow:hidden;cursor:pointer;background:var(--brand);color:var(--on-brand);font:700 1.02rem var(--f-body);touch-action:manipulation}
+.gk-btn::before{content:"";position:absolute;left:0;bottom:0;height:5px;width:calc(var(--p,0) * 100%);background:#ffd166;transition:width .25s}
+.gk-btn span{position:relative;display:inline-flex;align-items:center;gap:8px}
+.gk-btn.ok{background:var(--brand-soft);color:var(--brand)}
+.gk-btn:disabled{cursor:default}
+.gk-stars{display:inline-flex;gap:2px;margin-left:auto}
+.gk-stars i{display:grid;color:var(--line)}.gk-stars svg{width:20px;height:20px;fill:currentColor;stroke:none}
+.gk-stars i.on{color:#f4b400;animation:starin .5s cubic-bezier(.3,1.6,.5,1)}
+@keyframes starin{from{transform:scale(.3) rotate(-40deg)}}
+.ck-nav .go.pulse{animation:gopulse 1.2s ease-in-out infinite}
+@keyframes gopulse{50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--brand) 30%,transparent)}}
+/* efectos que vuelan */
+.gk-fx{position:fixed;z-index:88;width:0;height:0;pointer-events:none}
+.gk-fx i{position:absolute;left:0;top:0;border-radius:50%}
+.gk-ring{width:70px;height:70px;border:3px solid rgba(255,255,255,.85)}
+.gk-drop{width:7px;height:7px}
+.gk-stream{position:fixed;z-index:87;width:9px;border-radius:6px;pointer-events:none;transform-origin:50% 0}
+.gk-plus{position:fixed;z-index:89;font:800 1.05rem var(--f-num);color:#ffd166;text-shadow:0 2px 6px rgba(0,0,0,.6);pointer-events:none;transform:translate(-50%,-50%)}
+.gk-conf{position:fixed;inset:0;z-index:95;pointer-events:none;overflow:hidden}
+.gk-conf i{position:absolute;top:0;width:9px;height:14px;border-radius:2px}
+/* mesa lista (antes de empezar) */
+.gk-chef{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:4px 10px;padding:12px 14px;border-radius:16px;background:var(--surface);border:1px solid var(--line);margin-bottom:12px;font-size:.92rem}
+.gk-chef b{font:700 1rem var(--f-display);color:var(--brand)}
+.gk-chef i{grid-column:1/-1;height:8px;border-radius:99px;background:linear-gradient(90deg,#f4b400 calc(var(--x) * 100%),var(--line) 0)}
+.gk-chef small{grid-column:1/-1;color:var(--muted)}
+.gk-mise{position:relative;display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;padding:12px;border-radius:20px;margin-bottom:10px;box-shadow:var(--shadow);
+  background:radial-gradient(120% 90% at 25% -10%,rgba(255,255,255,.28),transparent 55%),repeating-linear-gradient(0deg,rgba(70,38,14,.3) 0 2px,transparent 2px 120px),#c8965c}
+.gk-mise::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:.9;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='600'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.003 .09' numOctaves='4' seed='9'/%3E%3CfeColorMatrix values='0 0 0 0 .38 0 0 0 0 .21 0 0 0 0 .08 1.7 0 0 0 -.7'/%3E%3C/filter%3E%3Crect width='800' height='600' filter='url(%23w)'/%3E%3C/svg%3E") center/cover}
+.gk-mi{position:relative;display:flex;flex-direction:column;align-items:center;gap:1px;padding:8px 4px;border-radius:14px;border:0;background:rgba(255,255,255,.88);color:#1d1d1f;font:500 .76rem/1.2 var(--f-body);cursor:pointer;box-shadow:0 4px 10px rgba(60,30,5,.25);transition:transform .15s}
+.gk-mi:active{transform:scale(.95)}
+.gk-mi b{font:700 .84rem var(--f-num);color:#2f6b4f}.gk-mi small{color:#6b6b6b;font:500 .7rem var(--f-num)}
+.gk-mi.on{background:#e3f2e8;box-shadow:0 0 0 2px #2f6b4f,0 4px 10px rgba(60,30,5,.2)}
+.gk-mi.on::after{content:"✓";position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#2f6b4f;color:#fff;font:700 .8rem var(--f-body)}
+/* final */
+.gk-win{display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px;border-radius:18px;background:var(--surface);border:1px solid var(--line);text-align:center}
+.gk-big{display:flex;gap:6px;color:var(--line)}.gk-big svg{width:46px;height:46px;fill:currentColor;stroke:none}
+.gk-big i{display:grid}.gk-big i.on{color:#f4b400;animation:starin .6s cubic-bezier(.3,1.6,.5,1) backwards}
+.gk-big i:nth-child(2){animation-delay:.25s}.gk-big i:nth-child(3){animation-delay:.5s}
+.gk-win b{font:700 1.1rem var(--f-display)}.gk-win em{font-style:normal;font-weight:700;color:#c47f00}
+.ck-all .gk-ss{margin-left:auto;color:#f4b400;font:600 .78rem var(--f-num);white-space:nowrap}
+@media (min-width:760px){.ck-body{max-width:960px}.ck-step{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);column-gap:22px;align-items:start}.ck-step>*{grid-column:2}.ck-step>.ck-meta{grid-column:1 / -1}.ck-step>.gk-play{grid-column:1;grid-row:2 / span 8;position:sticky;top:0}}
+@media (prefers-reduced-motion:reduce){.tmr.alarm,.ck-steam i,.gk-fl i::before,.gk-bub i,.gk-sz i,.gk-water,.gk-liq,.gk.spin .gk-mix,.ck-nav .go.pulse{animation:none}}
+.gk-board{position:absolute;inset:0}
+@media (max-width:380px){.ck-top{gap:6px;padding:8px 10px}.ck-ic{width:40px;height:40px}}
 /* Fotos realistas del plato */
 .pic.photo,.rpic{background:linear-gradient(110deg,var(--brand-soft) 35%,var(--surface) 50%,var(--brand-soft) 65%) 0 0/250% 100%;animation:fshim 1.8s linear infinite}
 .pic.photo:has(img.foto:not(.broken)),.rpic:has(img){animation-duration:2.4s}
@@ -972,7 +1181,8 @@ img.foto.broken{visibility:hidden}
 <div class="ck" id="game" hidden role="dialog" aria-modal="true" aria-label="Modo cocina">
   <header class="ck-top">
     <button class="ck-ic" id="gClose" aria-label="Salir del modo cocina"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-    <div class="ck-title"><span>Modo cocina</span><b id="gName">Receta</b></div>
+    <div class="ck-title"><span id="gScore">Modo cocina</span><b id="gName">Receta</b></div>
+    <button class="ck-ic" id="gSfx" aria-pressed="true" title="Sonidos del juego" aria-label="Sonidos del juego"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg></button>
     <button class="ck-ic" id="gVoice" aria-pressed="false" title="Leer cada paso en voz alta" aria-label="Leer en voz alta"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19 6a8.5 8.5 0 0 1 0 12"/></svg></button>
     <button class="ck-ic" id="gHands" aria-pressed="false" title="Manos libres: maneja la receta con la voz" aria-label="Manos libres"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
     <button class="ck-ic" id="gSize" aria-pressed="false" title="Letra más grande" aria-label="Letra más grande">A+</button>
@@ -1786,7 +1996,7 @@ const ERR = {
 };
 const errMsg = e => (e?.code === "timeout" && ERR.timeout ? ERR.timeout + (e.message ? " (" + e.message + ")" : "") : ERR[e?.code]) || ("Algo falló con la conexión. Intenta de nuevo." + (e?.message ? " (" + e.message + ")" : ""));
 const noAIMsg = "La IA no está disponible ahora.";
-const strip = r => { const {_diag, _gen, _guia, svg, _light, _refri, _src, _thumb, recorte_comida, ejemplo, folder, rating, notes, cooked, savedAt, updatedAt, lastCooked, id, ...rest} = r; return rest; };
+const strip = r => { const {_diag, _gen, _guia, _ing_en, _ing_en_fail, svg, _light, _refri, _src, _thumb, recorte_comida, ejemplo, folder, rating, notes, cooked, savedAt, updatedAt, lastCooked, id, ...rest} = r; return rest; };
 
 /* ---------- Caché de links ya analizados ---------- */
 const CACHE_KEY = "recetok_cache";
@@ -2499,7 +2709,8 @@ const CKI = {
   warn:'<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.5"/>',
   clock:'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/>',
   flame:'<path d="M12 21c-4 0-6.5-2.6-6.5-6.2 0-3.7 3.2-5.8 3.9-9.3 2.6 1.6 4 3.7 4.3 6 1-.7 1.6-1.8 1.8-3 1.8 1.6 3 3.9 3 6.3 0 3.6-2.5 6.2-6.5 6.2z"/>',
-  ask:'<path d="M4 5h16v11H9l-5 4z"/><path d="M10 9.5a2 2 0 1 1 2.7 1.9c-.5.2-.7.6-.7 1.1M12 14.5v.01"/>'
+  ask:'<path d="M4 5h16v11H9l-5 4z"/><path d="M10 9.5a2 2 0 1 1 2.7 1.9c-.5.2-.7.6-.7 1.1M12 14.5v.01"/>',
+  star:'<path d="M12 3.2l2.7 5.4 6 .9-4.35 4.2 1.03 5.95L12 16.8l-5.38 2.85 1.03-5.95L3.3 9.5l6-.9z"/>'
 };
 const cki = k => `<svg viewBox="0 0 24 24" aria-hidden="true">${CKI[k]}</svg>`;
 function stepIngs(r, p){
@@ -2523,45 +2734,266 @@ const qtyOf = (s, f) => s && /^\s*[\d½¼¾⅓⅔]/.test(s) ? scaleQty(s, f) : (
 const TMR_KEY = "recetok_timers";
 const UT_EN = {hervir:"inside a cooking pot", freir:"inside a frying pan", hornear:"in a baking dish", licuar:"inside a blender jar", cortar:"on a wooden cutting board", mezclar:"inside a large mixing bowl", reposar:"in a glass container", servir:"plated on a ceramic plate"};
 const UT_ES = {hervir:"la olla", freir:"la sartén", hornear:"la fuente", licuar:"la licuadora", cortar:"la tabla", mezclar:"el bol", reposar:"el recipiente", servir:"el plato"};
-/* Fotos realistas de cada ingrediente y de cómo se ve cada paso. Se piden de una en una (el servicio gratis limita) y por orden de prioridad. */
-const PIC = { done:new Set(), bad:new Set(), q:[], busy:false,
+/* Fotos realistas: se piden de a dos (el servicio gratis limita) y por orden de prioridad. */
+const PIC = { done:new Set(), bad:new Set(), busyU:new Set(), q:[], busy:0, max:2,
   url(desc, t, seed){ return "/api/foto?q=" + encodeURIComponent(clip(desc, 220)) + "&s=" + seed + "&t=" + t; },
   want(urls, front){
-    const list = urls.filter(u => u && !this.done.has(u) && !this.bad.has(u));
+    const list = [...new Set(urls)].filter(u => u && !this.done.has(u) && !this.bad.has(u) && !this.busyU.has(u));
     this.q = this.q.filter(u => !list.includes(u));
     this.q = front ? list.concat(this.q) : this.q.concat(list);
     this.pump();
   },
   pump(){
-    if(this.busy || !this.q.length) return;
-    const u = this.q.shift(); this.busy = true;
-    const im = new Image(), fin = ok => { this.busy = false;
-      (ok ? this.done : this.bad).add(u);
-      document.querySelectorAll("img[data-src]").forEach(e => { if(e.dataset.src !== u) return; if(ok){ e.src = u; e.classList.remove("wait"); } else e.classList.add("broken"); e.removeAttribute("data-src"); });
-      this.pump(); };
-    im.onload = () => fin(true); im.onerror = () => fin(false); im.src = u;
+    while(this.busy < this.max && this.q.length){
+      const u = this.q.shift(); this.busy++; this.busyU.add(u);
+      const im = new Image(), fin = ok => { this.busy--; this.busyU.delete(u);
+        (ok ? this.done : this.bad).add(u);
+        if(/[?&]t=cut(&|$)/.test(u)) Cut.make(u, ok ? im : null);
+        document.querySelectorAll("img[data-src]").forEach(e => { if(e.dataset.src !== u) return; if(ok){ e.src = u; e.classList.remove("wait"); } else e.classList.add("broken"); e.removeAttribute("data-src"); });
+        this.pump(); };
+      im.onload = () => fin(true); im.onerror = () => fin(false); im.src = u;
+    }
   },
-  tag(u, cls="", alt=""){ return this.done.has(u) ? `<img src="${u}" class="${cls}" alt="${esc(alt)}">` : `<img data-src="${u}" class="${cls} wait${this.bad.has(u)?" broken":""}" alt="${esc(alt)}">`; }
+  tag(u, cls="", alt=""){ return this.done.has(u) ? `<img src="${u}" class="${cls}" alt="${esc(alt)}" draggable="false">` : `<img data-src="${u}" class="${cls} wait${this.bad.has(u)?" broken":""}" alt="${esc(alt)}" draggable="false">`; }
 };
 
+/* Ingredientes recortados: la foto llega sobre fondo blanco y aquí se le quita el fondo (queda como recorte con sombra suave). */
+const BLANK = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
+const c255 = v => v < 0 ? 0 : v > 255 ? 255 : v | 0;
+const Cut = { m:new Map(),
+  get(u){ return u ? this.m.get(u) || null : null; },
+  make(u, im){
+    if(this.m.has(u)) return;
+    let v = { bad:true };
+    if(im) try{ v = this.process(im); }catch{ v = { src:u, raw:true, c:"" }; }
+    this.m.set(u, v);
+    document.querySelectorAll("img[data-cut]").forEach(e => { if(e.dataset.cut !== u) return;
+      if(v.bad){ e.classList.remove("wait"); e.classList.add("broken"); return; }
+      e.src = v.src; e.classList.remove("wait"); e.classList.toggle("raw", !!v.raw); });
+  },
+  tag(u, cls="", alt=""){
+    const v = this.get(u);
+    return `<img data-cut="${u||""}" src="${v && !v.bad ? v.src : BLANK}" class="${cls}${!v ? " wait" : v.bad ? " broken" : v.raw ? " raw" : ""}" alt="${esc(alt)}" draggable="false">`;
+  },
+  avg(d, w, h){
+    let r = 0, g = 0, b = 0, n = 0;
+    for(let j = h >> 2; j < h - (h >> 2); j += 2) for(let i = w >> 2; i < w - (w >> 2); i += 2){ const k = (j*w+i)*4; if(d[k+3] > 200){ r += d[k]; g += d[k+1]; b += d[k+2]; n++; } }
+    return n ? `rgb(${r/n|0},${g/n|0},${b/n|0})` : "";
+  },
+  process(im){
+    const sc = Math.min(1, 360 / Math.max(im.naturalWidth, im.naturalHeight));
+    const w = Math.max(1, Math.round(im.naturalWidth * sc)), h = Math.max(1, Math.round(im.naturalHeight * sc)), N = w*h;
+    const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+    const x = cv.getContext("2d", { willReadFrequently:true }); x.drawImage(im, 0, 0, w, h);
+    const img = x.getImageData(0, 0, w, h), d = img.data;
+    const edge = []; for(let i = 0; i < w; i++) edge.push(i, (h-1)*w + i); for(let j = 1; j < h-1; j++) edge.push(j*w, j*w + w-1);
+    let clear = 0; for(const p of edge) if(d[p*4+3] < 30) clear++;
+    if(clear / edge.length < .6){                                   // fondo opaco: se recorta
+      const med = a => a.sort((p, q) => p - q)[a.length >> 1];
+      const br = med(edge.map(p => d[p*4])), bg = med(edge.map(p => d[p*4+1])), bb = med(edge.map(p => d[p*4+2]));
+      const dist = new Uint8Array(N); for(let p = 0; p < N; p++){ const k = p*4; dist[p] = Math.min(255, Math.max(Math.abs(d[k]-br), Math.abs(d[k+1]-bg), Math.abs(d[k+2]-bb))); }
+      let near = 0; for(const p of edge) if(dist[p] < 26) near++;
+      if(br + bg + bb < 600 || near / edge.length < .65) return { src: cv.toDataURL("image/jpeg", .86), raw:true, c: this.avg(d, w, h) };
+      const T1 = 22, T2 = 62, T3 = 72, Lb = (br + bg + bb) / 3, seen = new Uint8Array(N), q = new Int32Array(N); let qh = 0, qt = 0;
+      for(const p of edge) if(!seen[p] && dist[p] < T1){ seen[p] = 1; q[qt++] = p; }
+      while(qh < qt){
+        const p = q[qh++], k = p*4, px = p % w;
+        if(seen[p] === 1) d[k+3] = 0;
+        else { const L = (d[k] + d[k+1] + d[k+2]) / 3; d[k] = d[k+1] = d[k+2] = 0; d[k+3] = c255(Math.min(.5, (Lb - L) / Lb * 1.7) * 255); }   // sombra suave
+        for(const n of [px > 0 ? p-1 : -1, px < w-1 ? p+1 : -1, p >= w ? p-w : -1, p < N-w ? p+w : -1]){
+          if(n < 0 || seen[n]) continue;
+          const m = n*4, sat = Math.max(d[m], d[m+1], d[m+2]) - Math.min(d[m], d[m+1], d[m+2]);
+          if(dist[n] < T1){ seen[n] = 1; q[qt++] = n; }
+          else if(dist[n] < T3 && sat < 9 && (d[m] + d[m+1] + d[m+2]) / 3 < Lb){ seen[n] = 3; q[qt++] = n; }
+          else seen[n] = 2;
+        }
+      }
+      for(let p = 0; p < N; p++){                                 // bordes suaves sin halo blanco
+        if(seen[p] !== 2) continue;
+        const a = Math.max(.3, Math.min(1, (dist[p] - T1) / (T2 - T1))), k = p*4;
+        if(a < 1){ d[k] = c255((d[k] - (1-a)*br) / a); d[k+1] = c255((d[k+1] - (1-a)*bg) / a); d[k+2] = c255((d[k+2] - (1-a)*bb) / a); d[k+3] = Math.round(a*255); }
+      }
+      x.putImageData(img, 0, 0);
+    }
+    if(clear / edge.length < .6){                                   // solo queda el objeto principal (fuera la marca de agua y migas)
+      const lab = new Int32Array(N), sizes = [0], q2 = new Int32Array(N);
+      for(let p = 0; p < N; p++){
+        if(lab[p] || d[p*4+3] < 120) continue;
+        const id = sizes.length; let qh = 0, qt = 0, n = 0; lab[p] = id; q2[qt++] = p;
+        while(qh < qt){ const c = q2[qh++], cx = c % w; n++;
+          for(const nb of [cx > 0 ? c-1 : -1, cx < w-1 ? c+1 : -1, c >= w ? c-w : -1, c < N-w ? c+w : -1]) if(nb >= 0 && !lab[nb] && d[nb*4+3] >= 120){ lab[nb] = id; q2[qt++] = nb; } }
+        sizes.push(n);
+      }
+      const big = Math.max(...sizes);
+      if(big > 0) for(let p = 0; p < N; p++){ const id = lab[p]; if(id && sizes[id] < big * .12) d[p*4+3] = 0; }
+      x.putImageData(img, 0, 0);
+    }
+    let x0 = w, y0 = h, x1 = -1, y1 = -1, solid = 0;
+    for(let j = 0; j < h; j++) for(let i = 0; i < w; i++){ const al = d[(j*w+i)*4+3]; if(al > 150){ solid++; if(i < x0) x0 = i; if(i > x1) x1 = i; if(j < y0) y0 = j; if(j > y1) y1 = j; } }
+    if(x1 < 0 || solid < N * .03) return { src: cv.toDataURL("image/jpeg", .86), raw:true, c:"" };
+    const m = 6; x0 = Math.max(0, x0-m); y0 = Math.max(0, y0-m); x1 = Math.min(w-1, x1+m); y1 = Math.min(h-1, y1+m);
+    const o = document.createElement("canvas"); o.width = x1-x0+1; o.height = y1-y0+1;
+    o.getContext("2d").drawImage(cv, x0, y0, o.width, o.height, 0, 0, o.width, o.height);
+    return { src: o.toDataURL("image/png"), raw:false, c: this.avg(d, w, h) };
+  }
+};
+
+/* Sonidos del juego, hechos con el navegador (sin archivos) */
+const Sfx = { on: lsGet("recetok_sfx", true),
+  ctx(){ if(!this.on) return null; try{ audioCtx ||= new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state === "suspended") audioCtx.resume(); return audioCtx; }catch{ return null; } },
+  buf(a){ if(this._b) return this._b; const n = a.sampleRate * 1.5, b = a.createBuffer(1, n, a.sampleRate), d = b.getChannelData(0); for(let i = 0; i < n; i++) d[i] = Math.random()*2 - 1; return this._b = b; },
+  tone(f0, f1, dur, vol=.25, type="sine", delay=0){
+    const a = this.ctx(); if(!a) return; const t = a.currentTime + delay, o = a.createOscillator(), g = a.createGain();
+    o.type = type; o.frequency.setValueAtTime(f0, t); if(f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .012); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + dur + .03);
+  },
+  noise(dur, vol, type, f0, q=1, delay=0, f1=0){
+    const a = this.ctx(); if(!a) return; const t = a.currentTime + delay, s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+    s.buffer = this.buf(a); f.type = type; f.frequency.setValueAtTime(f0, t); if(f1) f.frequency.exponentialRampToValueAtTime(f1, t + dur); f.Q.value = q;
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .02); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    s.connect(f); f.connect(g); g.connect(a.destination); s.start(t, Math.random() * .4); s.stop(t + dur + .05);
+  },
+  play(k){
+    if(!this.on) return;
+    switch(k){
+      case "plop": this.tone(640, 150, .2, .3); break;
+      case "sizzle": this.noise(1.2, .22, "highpass", 3200, .7); this.noise(.7, .07, "bandpass", 6500, 2); break;
+      case "fizz": this.noise(.4, .045, "highpass", 4200, .7); break;
+      case "pour": this.noise(1, .17, "bandpass", 650, 1.1, 0, 1700); break;
+      case "shake": for(let j = 0; j < 5; j++) this.noise(.06, .1, "highpass", 5200, 1, j*.1); break;
+      case "chop": this.noise(.09, .5, "lowpass", 900); this.tone(210, 90, .08, .22, "triangle"); break;
+      case "swish": this.noise(.22, .07, "bandpass", 1300, 1.4); break;
+      case "bubble": this.tone(260 + Math.random()*260, 520 + Math.random()*240, .07, .05); break;
+      case "fire": this.noise(.55, .26, "lowpass", 450, .8, 0, 1700); this.tone(1600, 1600, .03, .08, "square"); break;
+      case "click": this.tone(1900, 1900, .025, .07, "square"); break;
+      case "coin": this.tone(988, 988, .08, .1, "square"); this.tone(1319, 1319, .16, .1, "square", .07); break;
+      case "win": [523, 659, 784, 1046].forEach((f, j) => this.tone(f, f, .24, .15, "triangle", j*.11)); break;
+      case "door": this.noise(.28, .32, "lowpass", 300); this.tone(110, 70, .22, .2); break;
+      case "clink": this.tone(2400, 2320, .3, .08); this.tone(3150, 3050, .22, .05, "sine", .02); break;
+      case "toss": this.noise(.55, .18, "highpass", 2600, .7); this.tone(300, 600, .12, .05, "sine"); break;
+    }
+  },
+  whir(on){
+    const a = on ? this.ctx() : audioCtx;
+    if(on && a && !this._w){
+      const o = a.createOscillator(), f = a.createBiquadFilter(), g = a.createGain(), l = a.createOscillator(), lg = a.createGain();
+      o.type = "sawtooth"; o.frequency.value = 95; f.type = "lowpass"; f.frequency.value = 900; g.gain.value = .0001;
+      l.frequency.value = 7; lg.gain.value = 18; l.connect(lg); lg.connect(o.frequency);
+      o.connect(f); f.connect(g); g.connect(a.destination); o.start(); l.start();
+      g.gain.exponentialRampToValueAtTime(.12, a.currentTime + .15); this._w = { o, l, g };
+    } else if(!on && this._w){
+      const { o, l, g } = this._w; this._w = null;
+      try{ g.gain.exponentialRampToValueAtTime(.0001, audioCtx.currentTime + .2); o.stop(audioCtx.currentTime + .25); l.stop(audioCtx.currentTime + .25); }catch{}
+    }
+  }
+};
+const buzz = p => { try{ navigator.vibrate?.(p); }catch{} };
+const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+function confetti(n = 70){
+  if(calm()) return;
+  const box = document.createElement("div"); box.className = "gk-conf"; document.body.appendChild(box);
+  const cols = ["#f4b400","#e8553f","#2f9e5b","#3b82f6","#ff8a3d","#a855f7","#ffd166"];
+  for(let k = 0; k < n; k++){
+    const i = document.createElement("i"); i.style.background = cols[k % cols.length]; i.style.left = Math.random()*100 + "%"; box.appendChild(i);
+    i.animate([{ transform:"translate(0,-20px) rotate(0)" }, { transform:`translate(${(Math.random()-.5)*160}px,${innerHeight + 40}px) rotate(${Math.random()*900 - 450}deg)` }],
+      { duration:1700 + Math.random()*1300, delay:Math.random()*350, easing:"cubic-bezier(.25,.6,.45,1)", fill:"forwards" });
+  }
+  setTimeout(() => box.remove(), 3600);
+}
+
+/* Nivel de cocinero: los puntos de cada plato se suman */
+const CHEF_T = ["Ayudante de cocina","Aprendiz","Cocinero","Cocinero hábil","Jefe de partida","Sous-chef","Chef","Chef estrella","Gran chef"];
+const Chef = {
+  raw(){ return lsGet("recetok_chef", { xp:0, dishes:0, best:{} }); },
+  info(d = this.raw()){ const lv = Math.floor(Math.sqrt(d.xp / 300)) + 1, base = 300*(lv-1)**2, next = 300*lv**2;
+    return { ...d, lv, title: CHEF_T[Math.min(CHEF_T.length-1, lv-1)], pct: Math.max(0, Math.min(1, (d.xp - base) / (next - base))), next: next - d.xp }; },
+  add(rid, pts){ const d = this.raw(), before = this.info(d).lv, prev = d.best?.[rid] || 0; d.xp += pts; d.dishes++; d.best ||= {}; if(pts > prev) d.best[rid] = pts; lsSet("recetok_chef", d);
+    return { prev, up: this.info(d).lv > before }; }
+};
+
+/* Qué recipiente y qué minijuego tiene cada paso */
+const VES = { olla:["Olla","la olla"], sarten:["Sartén","la sartén"], bol:["Bol","el bol"], licuadora:["Licuadora","la licuadora"], fuente:["Fuente de horno","la fuente"], tabla:["Tabla de picar","la tabla"], plato:["Plato","el plato"], recipiente:["Recipiente","el recipiente"] };
+const FIRE = ["apagado","bajo","medio","medio-alto","alto"];
+const FIRE_LV = [0, .55, .78, .96, 1.18];
+const fireLv = s => ({ "bajo":1, "medio":2, "medio-alto":3, "alto":4 })[String(s||"").toLowerCase().trim()] || 0;
+const isHot = v => v === "olla" || v === "sarten";
+const STIR = /revuelv|remuev|mezcl|integr|incorpor/;
+function vessels(r){
+  const out = [];
+  (r.pasos||[]).forEach((p, i) => {
+    const act = stepAction(p), t = norm(stepText(p)), prev = out.slice().reverse().find(x => x !== "tabla" && x !== "plato");
+    let v;
+    if(act === "servir") v = "plato";
+    else if(act === "licuar" || /licuadora|procesador/.test(t)) v = "licuadora";
+    else if(act === "hornear" || /\bhorno\b/.test(t)) v = "fuente";
+    else if(/sarten|wok|plancha/.test(t)) v = "sarten";
+    else if(/\bolla\b|cacerola|agua hirviendo/.test(t)) v = "olla";
+    else if(act === "cortar") v = "tabla";
+    else if(act === "freir") v = "sarten";
+    else if(act === "hervir") v = "olla";
+    else if(act === "reposar") v = prev && !["licuadora"].includes(prev) && !/refri|nevera|congel|recipiente|tapper|taper/.test(t) ? prev : "recipiente";
+    else if(/\b(bol|tazon|recipiente|fuente honda)\b/.test(t)) v = "bol";
+    else v = isHot(prev) ? prev : "bol";
+    out.push(v);
+  });
+  return out;
+}
+function gameOf(v, act, t){
+  if(act === "reposar") return "reposar";
+  if(v === "tabla") return "picar";
+  if(v === "licuadora") return "licuar";
+  if(v === "fuente" && act === "hornear") return "hornear";
+  if(v === "plato") return "servir";
+  if(v === "sarten" && act === "freir" && !STIR.test(t)) return "saltear";
+  if(v === "olla" && act === "hervir" && !STIR.test(t)) return "hervir";
+  return "revolver";
+}
+const GAMES = {
+  revolver:{ btn:"Revolver", hint:v => `Haz círculos con el dedo dentro de ${VES[v][1]}`, done:"¡Bien mezclado!", need:3 },
+  picar:{ btn:"Picar", hint:() => "Toca la tabla para picar", done:"¡Picado fino!", need:4 },
+  saltear:{ btn:"Saltear", hint:() => "Toca o desliza hacia arriba para saltear", done:"¡Doradito!", need:3 },
+  licuar:{ btn:"Mantén presionado para licuar", hint:() => "Mantén presionada la licuadora", done:"¡Bien licuado!", need:1 },
+  hervir:{ btn:"Subir el fuego", hint:() => "Sube el fuego hasta que hierva", done:"¡Ya hierve!", need:1 },
+  hornear:{ btn:"Meter al horno", hint:() => "Toca para meter la fuente al horno", done:"¡Al horno!", need:1 },
+  reposar:{ btn:"Tapar", hint:() => "Tapa y deja reposar", done:"¡A reposar!", need:1 },
+  servir:{ btn:"Servir", hint:() => "Toca para servir el plato", done:"¡A la mesa!", need:1 }
+};
+const LIQ_RE = /aceite|mantequilla|margarina|leche|crema|nata|caldo|\bagua\b|vino|salsa|jugo|zumo|vinagre|miel|yogur|sillao|soya|soja|pure de tomate|pasta de tomate|cerveza|licor|esencia|extracto|huevo batido|claras|yemas|consome|fondo de/;
+const POW_RE = /rallad|\bsal\b|pimienta|comino|oregano|azucar|harina|canela|paprika|pimenton|curry|en polvo|cacao|sazonador|especia|nuez moscada|maicena|fecula|levadura|bicarbonato|polvo de hornear|ajinomoto|achiote|palillo|curcuma|ajo en polvo|hierbas secas|tomillo seco|aji molido/;
+const LIQ_COL = [[/aceite/,"rgba(226,178,58,.55)"],[/mantequilla|margarina/,"rgba(244,204,96,.62)"],[/leche|crema|nata|yogur|claras/,"rgba(247,243,233,.93)"],[/caldo|consome|fondo/,"rgba(198,134,58,.72)"],[/\bagua\b/,"rgba(168,205,220,.4)"],[/vino/,"rgba(118,22,40,.78)"],[/tomate|ketchup/,"rgba(180,38,28,.88)"],[/sillao|soya|soja/,"rgba(58,30,14,.88)"],[/miel/,"rgba(212,150,30,.82)"],[/vinagre/,"rgba(234,214,160,.5)"],[/huevo|yemas/,"rgba(245,196,58,.92)"],[/salsa/,"rgba(170,70,30,.8)"]];
+const POW_COL = [[/queso|rallad/,"#f2e4b4"],[/\bsal\b|azucar|harina|maicena|fecula|polvo de hornear|bicarbonato/,"rgba(255,255,255,.97)"],[/pimienta/,"#2b2520"],[/comino|canela|cacao/,"#7d4a22"],[/oregano|hierbas|tomillo/,"#5d6b2f"],[/paprika|pimenton|achiote|aji molido/,"#b5321f"],[/curry|curcuma|palillo/,"#d9a020"]];
+const FOOD_COL = [[/pollo|pechuga|gallina|pavo/,"#efc3a0"],[/\bres\b|carne|lomo|bistec|molida|chuleta/,"#a8452f"],[/cerdo|tocino|panceta|jamon|chorizo|salchicha/,"#e3a08a"],[/pescado|bonito|merluza|tilapia|salmon|atun|corvina/,"#f1d6c4"],[/camaron|langostino|marisco|pulpo|calamar/,"#f3a37c"],[/cebolla roja|cebolla morada/,"#9c4a7a"],[/cebolla|cebollin|poro/,"#efe3d6"],[/\bajo/,"#f2ece0"],[/tomate/,"#d33a2c"],[/papa|camote|yuca/,"#e6c98a"],[/zanahoria|zapallo|calabaza/,"#ef8a2a"],[/pimiento rojo|rocoto/,"#d2302a"],[/pimiento|aji verde/,"#4d9a3a"],[/\baji/,"#f1b21a"],[/limon|lima/,"#9cc93c"],[/arroz/,"#f6f2e8"],[/pasta|fideo|tallarin|spaghetti|macarron|quinua|trigo|penne/,"#f0d48a"],[/espinaca|acelga|lechuga|kale|albahaca|perejil|culantro|cilantro|hierba|huacatay|menta|brocoli|apio|vainita|arveja|zucchini|pepino/,"#4a8a34"],[/champinon|hongo/,"#d6c3a5"],[/huevo/,"#f5c443"],[/queso/,"#f1df9e"],[/maiz|choclo/,"#f1cd3d"],[/frijol|menestra|lenteja|garbanzo/,"#8a5a3a"],[/palta|aguacate/,"#6f8f2a"],[/platano|banana|mango|pina/,"#f1d14b"],[/fresa|frambuesa|cereza/,"#d42d43"],[/manzana/,"#c8352c"],[/\bpan\b|tostada|galleta/,"#d9a35b"],[/chocolate|cacao/,"#5b3420"],[/nuez|almendra|mani|pecana/,"#b07a45"]];
+const foodColor = item => { const n = norm(item); for(const [re, col] of FOOD_COL) if(re.test(n)) return col; return "#c9a27a"; };
+const kindOf = item => { const n = norm(item); return LIQ_RE.test(n) ? "liq" : POW_RE.test(n) ? "pow" : "sol"; };
+const colorOf = (item, kind, c) => { const n = norm(item); for(const [re, col] of kind === "pow" ? POW_COL : LIQ_COL) if(re.test(n)) return col; return c ? c.replace("rgb(", "rgba(").replace(")", kind === "liq" ? ",.85)" : ",1)") : kind === "liq" ? "rgba(200,150,80,.75)" : "#8a6a4a"; };
+const rnd = (a, b = 0) => { const x = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return x - Math.floor(x); };
+const FLAMES = Array.from({ length:20 }, (_, k) => `<i style="--a:${k*18}deg;--d:-${(k*37 % 13) / 100}s"></i>`).join("");
+const BUBBLES = Array.from({ length:14 }, (_, k) => `<i style="left:${12 + rnd(k,1)*70}%;top:${12 + rnd(k,2)*70}%;--s:${5 + rnd(k,3)*7}%;--d:-${(rnd(k,4)*1.1).toFixed(2)}s"></i>`).join("");
+const SIZZLE = Array.from({ length:16 }, (_, k) => `<i style="left:${10 + rnd(k,5)*78}%;top:${10 + rnd(k,6)*78}%;--d:-${(rnd(k,7)*.45).toFixed(2)}s"></i>`).join("");
+const SPOON = `<svg viewBox="0 0 40 150" aria-hidden="true"><defs><linearGradient id="gkw" x1="0" x2="1"><stop offset="0" stop-color="#a86b36"/><stop offset=".45" stop-color="#e2ad6e"/><stop offset="1" stop-color="#9a6131"/></linearGradient></defs><rect x="16" y="38" width="8" height="110" rx="4" fill="url(#gkw)"/><ellipse cx="20" cy="22" rx="15" ry="21" fill="url(#gkw)"/><ellipse cx="20" cy="23" rx="10" ry="15" fill="#8d5a2c" opacity=".35"/></svg>`;
+const KNIFE = `<svg viewBox="0 0 200 60" aria-hidden="true"><defs><linearGradient id="gkb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7f9fa"/><stop offset=".6" stop-color="#c5cbcf"/><stop offset="1" stop-color="#8b9398"/></linearGradient></defs><path d="M6 44 C38 20 104 10 134 12 L134 46 L16 48 Z" fill="url(#gkb)"/><path d="M6 44 L134 44 L134 47 L16 48 Z" fill="#7c858a"/><rect x="132" y="15" width="64" height="26" rx="11" fill="#2b2420"/><circle cx="150" cy="28" r="2.6" fill="#c9cdd0"/><circle cx="176" cy="28" r="2.6" fill="#c9cdd0"/></svg>`;
+
 const Cook = {
-  r:null, i:-1, timers:[], have:new Set(), adj:{}, tick:0, lock:null, voice:false, hands:false, rec:null, loading:false, askCtl:null, listOpen:false,
+  r:null, i:-1, timers:[], have:new Set(), adj:{}, tick:0, lock:null, voice:false, hands:false, rec:null, loading:false, askCtl:null, listOpen:false, g:null, ves:null,
   get n(){ return this.r.pasos.length; },
   get guide(){ const g = this.r._guia; return g && Array.isArray(g.pasos) && g.pasos.length === this.n ? g : null; },
   open(r){
     if(!(r.pasos||[]).length){ toast("Esta receta no tiene pasos."); return; }
-    this.r = r; this.i = -1; this.have = new Set(); this.added = new Set(); this.adj = {}; this.listOpen = false;
+    this.r = r; this.i = -1; this.have = new Set(); this.adj = {}; this.listOpen = false; this.ves = vessels(r);
+    this.g = { score:0, steps:{}, fire:{}, vc:{}, mesa:false, saved:null };
     const saved = lsGet(TMR_KEY, null);
     this.timers = saved && saved.rid === S.orig.id ? saved.timers.filter(t => !t.ack && Date.now() - t.end < 3600e3) : [];
     $("#gName").textContent = r.nombre;
+    $("#gSfx").setAttribute("aria-pressed", Sfx.on);
     $("#game").hidden = false; document.body.classList.add("lock");
     this.keepAwake(); this.loadGuide();
     clearInterval(this.tick); this.tick = setInterval(() => this.tickTimers(), 500);
-    this.go(-1);
+    this.hud(); this.go(-1);
   },
   close(){
     $("#game").hidden = true; document.body.classList.remove("lock");
-    clearInterval(this.tick); this.setHands(false);
+    clearInterval(this.tick); this.setHands(false); this.holdStop();
     try{ this.lock?.release(); }catch{} this.lock = null;
     try{ speechSynthesis.cancel(); }catch{}
     this.askCtl?.abort();
@@ -2571,10 +3003,9 @@ const Cook = {
   saveTimers(){ lsSet(TMR_KEY, { rid:S.orig?.id, timers:this.timers }); },
   persist(){ const s = savedFor(S.orig); if(s) Store.saveRecipe(s); },
 
-  /* Consejos de cocinero para cada paso (una sola consulta a la IA, se guarda con la receta) */
+  /* Consejos de cocinero para cada paso y nombres en inglés de los ingredientes (para sus fotos). Una sola consulta, se guarda con la receta. */
   async loadGuide(){
-    if(this.guide || this.loading || !sample){ this.queuePics(); return; }
-    if(this.hasEsc) setTimeout(() => this.queuePics(), 0);
+    if(this.guide || this.loading || !sample){ this.queuePics(); if(this.guide) this.loadEn(); return; }
     const r = this.r; this.loading = true;
     try{
       const g = await sample.json(`Eres un cocinero profesional que acompaña a alguien MIENTRAS cocina en su casa (Perú/Latinoamérica). Le hablas de tú, claro y corto.
@@ -2582,100 +3013,165 @@ Receta (JSON): ${JSON.stringify(strip(r))}
 Va a preparar ${S.servings} porciones.
 Para CADA uno de los ${r.pasos.length} pasos, en el mismo orden, da ayuda concreta para ESTE plato (nada genérico como "con cuidado").
 Responde SOLO JSON: {"antes":[string — 2 a 4 cosas para dejar listas antes de empezar: qué picar y medir, precalentar el horno a cuántos °C, sacar algo de la refri, etc.],
-"pasos":[{"listo_cuando":string — la señal concreta de que el paso está bien (color, textura, olor, sonido o prueba; ej "la cebolla está transparente y huele dulce"),"fuego":"bajo"|"medio"|"medio-alto"|"alto"|"" (vacío si el paso no usa fuego),"ojo":string — el error típico en este paso y cómo evitarlo, máximo 1 frase,"mientras":string — qué adelantar mientras esperas, solo si el paso tiene espera; si no, "","escena_en":string — EN INGLÉS, cómo se ve lo que hay dentro de la olla/sartén/bol/tabla al TERMINAR este paso, visto desde arriba: ingredientes, colores, textura, burbujas o vapor (ej "golden seared chicken strips sizzling in olive oil inside a frying pan")}]} (exactamente ${r.pasos.length} elementos en "pasos")`, { modelTier:"quick" });
-      if(g && Array.isArray(g.pasos) && g.pasos.length === r.pasos.length){ r._guia = { antes:(g.antes||[]).slice(0,5), pasos:g.pasos, ing_en:Array.isArray(g.ingredientes_en) && g.ingredientes_en.length === (r.ingredientes||[]).length ? g.ingredientes_en : null }; this.persist(); }
+"ingredientes_en":[string — para CADA ingrediente de la receta, en el mismo orden (${(r.ingredientes||[]).length} en total), su nombre común en inglés, en singular, tal como se ve crudo y sin preparar (ej "garlic", "red onion", "chicken breast", "heavy cream", "aji amarillo chili pepper"), 1 a 4 palabras en minúsculas],
+"pasos":[{"listo_cuando":string — la señal concreta de que el paso está bien (color, textura, olor, sonido o prueba; ej "la cebolla está transparente y huele dulce"),"fuego":"bajo"|"medio"|"medio-alto"|"alto"|"" (vacío si el paso no usa fuego),"ojo":string — el error típico en este paso y cómo evitarlo, máximo 1 frase,"mientras":string — qué adelantar mientras esperas, solo si el paso tiene espera; si no, "","escena_en":string — EN INGLÉS, cómo se ve la comida dentro de la olla/sartén/bol/tabla al TERMINAR este paso, vista de cerca desde arriba: ingredientes, colores, textura, burbujas o vapor (ej "golden seared chicken strips sizzling in olive oil")}]} (exactamente ${r.pasos.length} elementos en "pasos")`, { modelTier:"quick" });
+      if(g && Array.isArray(g.pasos) && g.pasos.length === r.pasos.length){
+        r._guia = { antes:(g.antes||[]).slice(0,5), pasos:g.pasos };
+        this.setEn(r, g.ingredientes_en);
+        this.persist();
+      }
     }catch{}
     this.loading = false;
-    if(this.r === r) this.queuePics();
+    if(this.r === r){ this.queuePics(); this.loadEn(); }
     if(this.r === r && !$("#game").hidden) this.draw();
   },
+  setEn(r, en){ if(Array.isArray(en) && en.length === (r.ingredientes||[]).length) r._ing_en = en.map(s => String(s||"").toLowerCase().replace(/[^a-z\s-]/g, " ").replace(/\s+/g, " ").trim().slice(0, 50)); },
+  async loadEn(){
+    const r = this.r;
+    if(r._ing_en || this.enLoading || !sample || !(r.ingredientes||[]).length) return;
+    this.enLoading = true;
+    try{
+      const d = await sample.json(`Ingredientes (en español): ${JSON.stringify(r.ingredientes.map(x => x.item))}
+Para CADA uno, en el mismo orden, da su nombre común en inglés, en singular, tal como se ve crudo y sin preparar (ej "garlic", "red onion", "chicken breast", "heavy cream", "aji amarillo chili pepper"), 1 a 4 palabras en minúsculas.
+Responde SOLO JSON: {"en":[string]}`, { modelTier:"quick" });
+      this.setEn(r, d?.en);
+      if(r._ing_en) this.persist();
+    }catch{}
+    this.enLoading = false;
+    if(!r._ing_en) r._ing_en_fail = true;
+    if(this.r === r){ this.queuePics(); if(!$("#game").hidden) this.draw(); }
+  },
 
-  /* Pocas imágenes, bien elegidas: una foto de todo listo, la foto del plato, y como máximo 4 escenas de olla/sartén/bol */
-  get hasEsc(){ return this.r.pasos.some(p => p?.escena_en); },
-  get ready(){ return !this.loading || this.hasEsc; },
-  miseUrl(){ const r = this.r; return PIC.url((r.foto_en || r.nombre) + " ingredients: " + (r.ingredientes||[]).map(x => x.item.split(/[(,]/)[0].trim()).slice(0, 10).join(", "), "mise", seedOf(r.nombre) % 9973); },
+  /* ----- fotos: ingredientes recortados, el plato y hasta 4 fotos de cómo debe quedar la olla ----- */
+  cutUrl(k){
+    const r = this.r, en = r._ing_en?.[k];
+    if(!en && sample && !r._ing_en_fail) return "";                 // esperando los nombres en inglés
+    const name = String(en || (r.ingredientes[k]?.item || "").split(/[(,]/)[0]).toLowerCase().replace(/\s+/g, " ").trim();
+    return name ? PIC.url(name, "cut", seedOf(name) % 9973) : "";
+  },
   get picked(){
     const vis = this.r.pasos.map((p,k) => [k, stepAction(p)]).filter(([,a]) => /hervir|freir|hornear|mezclar|licuar/.test(a)).map(([k]) => k);
     if(vis.length <= 4) return vis;
     return [0,1,2,3].map(j => vis[Math.round(j * (vis.length-1) / 3)]);
   },
-  shown(i){                                   // qué foto se ve en el paso i y con qué etiqueta
-    const act = stepAction(this.r.pasos[i]);
-    if(act === "servir" || i === this.n-1 && !this.picked.includes(i)) return { url:picOf(this.r), lab:"Así queda el plato" };
-    if(this.picked.includes(i)) return { url:this.sceneUrl(i), lab:"Así debe verse al terminar" };
-    const prev = this.picked.filter(k => k < i).pop();
-    return prev != null ? { url:this.sceneUrl(prev), lab:"Así va tu preparación" } : { url:this.miseUrl(), lab:"Tus ingredientes" };
-  },
-  sceneUrl(i){ const p = this.r.pasos[i], g = this.guide?.pasos[i], act = stepAction(p), d = p?.escena_en || g?.escena_en;
-    return PIC.url(d ? d + ", " + (UT_EN[act]||"") : stepText(p) + " — " + (UT_EN[act]||""), "paso", (seedOf(this.r.nombre) + i*101) % 99991); },
+  sceneUrl(i){ const p = this.r.pasos[i], g = this.guide?.pasos[i], d = p?.escena_en || g?.escena_en;
+    return d ? PIC.url(d, "fill", (seedOf(this.r.nombre) + i*101) % 99991) : ""; },
   queuePics(){
-    if(!this.r || !this.ready) return;
-    const cur = Math.max(0, Math.min(this.n-1, this.i));
-    PIC.want([this.i < 0 ? this.miseUrl() : this.shown(cur).url, picOf(this.r), this.miseUrl(), ...this.picked.map(k => this.sceneUrl(k))]);
+    if(!this.r) return;
+    const ings = (this.r.ingredientes||[]).map((_, k) => this.cutUrl(k));
+    const cur = this.i >= 0 && this.i < this.n ? stepIngs(this.r, this.r.pasos[this.i]).map(x => ings[this.r.ingredientes.indexOf(x)]) : [];
+    PIC.want([...cur, this.i >= 0 && this.i < this.n ? this.sceneUrl(this.i) : "", ...ings, picOf(this.r), ...this.picked.map(k => this.sceneUrl(k))]);
+    if(cur.length) PIC.want(cur, true);
   },
   go(i){
+    this.holdStop();
     this.i = Math.max(-1, Math.min(this.n, i));
-    if(this.r && this.ready && this.i >= 0 && this.i < this.n){ const nx = this.picked.find(k => k > this.i); PIC.want([this.shown(this.i).url, nx != null ? this.sceneUrl(nx) : ""], true); }
-    this.listOpen = false; this.ans = ""; this.askOpen = false; this.draw(); this.speak();
+    this.listOpen = false; this.ans = ""; this.askOpen = false;
+    if(this.i === this.n && !this.g.saved){
+      const max = this.n * 3, stars = this.stars();
+      this.g.saved = Chef.add(S.orig?.id || this.r.nombre, this.g.score);
+      this.g.final = { stars, max };
+      setTimeout(() => { confetti(); Sfx.play("win"); }, 250);
+    }
+    this.draw(); this.speak(); this.queuePics();
     $("#gBody").scrollTop = 0;
   },
   next(){ this.go(this.i + 1); },
   prev(){ this.go(this.i - 1); },
 
   draw(){
-    const r = this.r, i = this.i, n = this.n;
+    const i = this.i, n = this.n;
     $("#gBar").style.width = (i < 0 ? 0 : Math.min(1, (i+1)/n) * 100) + "%";
     $("#gPrev").disabled = i < 0;
     $("#gNext").textContent = i < 0 ? "Empezar a cocinar" : i === n-1 ? "Terminé" : i >= n ? "Listo" : "Siguiente";
     $("#gNext").hidden = i >= n;
+    $("#gNext").classList.toggle("pulse", i >= 0 && i < n && !!this.g.steps[i]?.done);
     $("#gList").setAttribute("aria-pressed", this.listOpen);
     this.drawTimers();
     $("#gBody").innerHTML = this.listOpen ? this.listHTML() : i < 0 ? this.prepHTML() : i >= n ? this.endHTML() : this.stepHTML();
     this.bind();
   },
 
+  /* ----- puntaje ----- */
+  stars(){ return Object.values(this.g.steps).reduce((a, s) => a + s.stars.size, 0); },
+  hud(){ const el = $("#gScore"); if(el) el.textContent = this.g && (this.g.score || this.stars()) ? `★ ${this.stars()} · ${this.g.score} pts` : "Modo cocina"; },
+  gs(i){ return this.g.steps[i] ||= { added:new Set(), prog:0, done:false, stars:new Set(), board:[], flips:0, oven:false, lid:false, rot:0 }; },
+  vc(v){ return this.g.vc[v] ||= { pcs:[], liq:[], base:null, water:false, brown:false }; },
+  vesselAt(i){ return this.ves[i] || "bol"; },
+  gameAt(i){ const p = this.r.pasos[i]; return gameOf(this.vesselAt(i), stepAction(p), norm(stepText(p))); },
+  recFire(i){ const f = fireLv(this.guide?.pasos[i]?.fuego); if(f) return f; const a = stepAction(this.r.pasos[i]); return a === "hervir" ? 4 : 2; },
+  pop(msg){ const p = $("#ckPop"); if(!p || !msg) return; p.textContent = msg; p.classList.remove("show"); void p.offsetWidth; p.classList.add("show"); },
+  plusAt(txt, x, y){
+    if(calm()) return; const e = document.createElement("b"); e.className = "gk-plus"; e.textContent = txt; e.style.left = x + "px"; e.style.top = y + "px"; document.body.appendChild(e);
+    e.animate([{ transform:"translate(-50%,-50%) scale(.7)", opacity:0 }, { transform:"translate(-50%,-120%) scale(1.1)", opacity:1, offset:.25 }, { transform:"translate(-50%,-260%)", opacity:0 }], { duration:1000, easing:"ease-out" }).onfinish = () => e.remove();
+  },
+  award(i, s, pts, msg){
+    const st = this.gs(i); if(st.stars.has(s)) return;
+    st.stars.add(s); this.g.score += pts; this.hud();
+    const el = $(`#gBody .gk-stars i[data-s="${s}"]`); if(el && i === this.i){ el.classList.add("on"); el.title = "Ganada"; }
+    if(msg && i === this.i){ this.pop(msg); Sfx.play("coin"); }
+    if(st.stars.size === 3 && !st.perfect){ st.perfect = true; this.g.score += 30; this.hud(); if(i === this.i) setTimeout(() => { this.pop("¡Paso perfecto! +30"); confetti(36); }, msg ? 900 : 0); }
+  },
+  hint(){
+    const i = this.i, st = this.gs(i), v = this.vesselAt(i), gm = this.gameAt(i), r = this.r;
+    if(st.done) return "¡Listo! Toca Siguiente";
+    const left = stepIngs(r, r.pasos[i]).filter(x => !st.added.has(r.ingredientes.indexOf(x))).length;
+    if(isHot(v) && !(this.g.fire[v] || 0)) return "Enciende el fuego con la perilla";
+    if(left && gm !== "hervir") return `Arrastra ${left === 1 ? "el ingrediente" : "los ingredientes"} a ${VES[v][1]}`;
+    if(gm === "picar" && !st.board.length && left) return "Arrastra los ingredientes a la tabla";
+    return GAMES[gm].hint(v);
+  },
+  refresh(){                                          // actualiza pista, contador, botón y siguiente sin redibujar
+    const i = this.i; if(i < 0 || i >= this.n) return;
+    const st = this.gs(i), r = this.r, ings = stepIngs(r, r.pasos[i]);
+    const h = $("#gkHint"); if(h) h.textContent = this.hint();
+    const c = $("#ckCnt"); if(c) c.textContent = `${ings.filter(x => st.added.has(r.ingredientes.indexOf(x))).length}/${ings.length}`;
+    const b = $("#gkAct"); if(b){ b.style.setProperty("--p", st.done ? 1 : st.prog); if(st.done){ b.classList.add("ok"); b.disabled = true; b.innerHTML = `<span>${cki("ok")} ${esc(GAMES[this.gameAt(i)].done)}</span>`; } }
+    const s = $("#gk"); if(s){ s.style.setProperty("--p", this.allIn(i) ? (st.done ? 1 : st.prog) : 0); s.style.setProperty("--d", st.done ? 1 : 0); s.classList.toggle("done", st.done); }
+    $("#gNext").classList.toggle("pulse", st.done);
+  },
+
+  /* ----- antes de empezar: la mesa con todos los ingredientes ----- */
   prepHTML(){
-    const r = this.r, fac = stepFac(r), g = this.guide;
-    const tools = [...new Set(r.pasos.map(p => UTENSIL[stepAction(p)]))].filter(Boolean);
+    const r = this.r, fac = stepFac(r), g = this.guide, ch = Chef.info();
+    const tools = [...new Set(this.ves.map(v => VES[v][0]))];
     const antes = g?.antes?.length ? g.antes : ["Lava, pica y mide todo antes de prender el fuego: así nada se quema mientras buscas algo."].concat(r.pasos.some(p => stepAction(p) === "hornear") ? ["Prende el horno antes, para que esté caliente cuando lo necesites."] : []);
     const all = (r.ingredientes||[]).length, got = this.have.size;
     return `<div class="ck-prep">
       <span class="ck-num">Antes de empezar</span>
-      <h2 class="ck-h">Prepara tu espacio</h2>
-      <div class="ck-stage ck-mise">${PIC.tag(this.miseUrl(), "ck-scene", "Todos los ingredientes listos")}<span class="ck-stlab">Así deben quedar tus ingredientes</span></div>
+      <h2 class="ck-h">Prepara tu mesa</h2>
+      <div class="gk-chef"><b>Nivel ${ch.lv}</b><span>${esc(ch.title)}${ch.dishes ? ` · ${ch.dishes} ${ch.dishes === 1 ? "plato" : "platos"}` : ""}</span><i style="--x:${ch.pct}"></i>
+        <small>Cada paso da hasta 3 ★: ingredientes, técnica y punto exacto. Este plato reparte ${this.n * 3} ★.${ch.best?.[S.orig?.id] ? ` Tu récord aquí: ${ch.best[S.orig.id]} pts.` : ""}</small></div>
+      <div class="gk-mise" role="group" aria-label="Ingredientes sobre la mesa">${(r.ingredientes||[]).map((x,k) => { const c = qtyOf(x.cantidad, fac), e = qtyOf(x.exacta, fac), on = this.have.has(k), nm = x.item.split(/[(,]/)[0].trim();
+        return `<button class="gk-mi${on ? " on" : ""}" data-have="${k}" aria-pressed="${on}"><span class="gk-tim" style="--c:${foodColor(x.item)}">${Cut.tag(this.cutUrl(k), "", nm)}<span class="gk-ini">${esc(nm.slice(0,1).toUpperCase())}</span></span><b>${esc(c)}</b><span>${esc(nm)}</span>${e && norm(e)!==norm(c) ? `<small>${esc(e)}</small>` : ""}</button>`; }).join("")}</div>
+      <p class="ck-sub">Toca cada ingrediente cuando ya lo tengas medido sobre la mesa · <b>${got}/${all}</b> listos</p>
       <div class="ck-facts">
         ${r.tiempo_min ? `<span>${cki("clock")} ${esc(r.tiempo_min)} min en total</span>` : ""}
         <span>${n2(this.n)} pasos</span>
         <span class="ck-serv"><button class="ck-mini" data-serv="-1" aria-label="Menos porciones">−</button><b>${S.servings}</b> porc.<button class="ck-mini" data-serv="1" aria-label="Más porciones">+</button></span>
       </div>
-      <section class="ck-card">
-        <div class="ck-cardh"><h3>Ingredientes</h3><small>${got}/${all} listos</small></div>
-        <p class="ck-sub">Toca cada uno cuando ya lo tengas medido sobre la mesa.</p>
-        <ul class="ck-check">${(r.ingredientes||[]).map((x,k) => { const c = qtyOf(x.cantidad, fac), e = qtyOf(x.exacta, fac);
-          return `<li><label class="${this.have.has(k)?"on":""}"><input type="checkbox" data-have="${k}" ${this.have.has(k)?"checked":""}><span class="ck-box">${cki("ok")}</span><span class="ck-iname">${esc(x.item)}</span><span class="ck-q"><b>${esc(c)}</b>${e && norm(e)!==norm(c) ? `<small>${esc(e)}</small>` : ""}</span></label></li>`; }).join("")}</ul>
-      </section>
       ${tools.length ? `<section class="ck-card"><h3>Vas a usar</h3><p class="ck-tools">${tools.map(esc).join(" · ")}</p></section>` : ""}
       <section class="ck-card"><h3>Deja listo antes</h3><ul class="ck-list">${antes.map(a => `<li>${esc(a)}</li>`).join("")}</ul>
         ${!g && this.loading ? `<p class="ck-sub"><span class="dot"></span> Preparando consejos de cocinero para cada paso…</p>` : ""}</section>
     </div>`;
   },
 
+  /* ----- cada paso: la cocina del juego ----- */
   stepHTML(){
-    const r = this.r, p = r.pasos[this.i], act = stepAction(p), fac = stepFac(r), g = this.guide?.pasos[this.i] || null;
-    const ings = stepIngs(r, p), mins = stepMinutes(p);
-    const fire = g?.fuego && /bajo|medio|alto/.test(g.fuego) ? g.fuego : "", sh = this.shown(this.i);
+    const r = this.r, i = this.i, p = r.pasos[i], fac = stepFac(r), g = this.guide?.pasos[i] || null, st = this.gs(i);
+    const ings = stepIngs(r, p), mins = stepMinutes(p), v = this.vesselAt(i);
+    const fire = g?.fuego && /bajo|medio|alto/.test(g.fuego) ? g.fuego : "";
+    const STAR = { i:"Ingredientes", t:"Técnica", p:"Punto exacto" };
     return `<div class="ck-step">
-      <div class="ck-meta"><span class="ck-num">Paso ${this.i+1} <small>de ${this.n}</small></span><span class="ck-pill">${esc(ACTNAME[act]||"")}</span>${fire ? `<span class="ck-pill fire">${cki("flame")} Fuego ${esc(fire)}</span>` : ""}</div>
-      <div class="ck-stage act-${act}${/hervir|freir|hornear/.test(act) ? " hot" : ""}" id="ckStage">
-        ${PIC.tag(sh.url, "ck-scene", sh.lab)}
-        ${/hervir|freir|hornear/.test(act) ? `<span class="ck-steam" aria-hidden="true"><i></i><i></i><i></i></span>` : ""}
-        <span class="ck-stlab">${sh.lab}</span>
-        ${ings.length ? `<span class="ck-cnt" id="ckCnt">${ings.filter(x => this.added.has(this.i + ":" + r.ingredientes.indexOf(x))).length}/${ings.length} en ${UT_ES[act]||"la cocina"}</span>` : ""}
-        <span class="ck-pop" id="ckPop"></span>
-      </div>
+      <div class="ck-meta"><span class="ck-num">Paso ${i+1} <small>de ${this.n}</small></span><span class="ck-pill">${esc(VES[v][0])}</span>${fire ? `<span class="ck-pill fire">${cki("flame")} Fuego ${esc(fire)}</span>` : ""}
+        <span class="gk-stars" role="img" aria-label="${st.stars.size} de 3 estrellas">${Object.entries(STAR).map(([s, t]) => `<i data-s="${s}" class="${st.stars.has(s) ? "on" : ""}" title="${t}">${cki("star")}</i>`).join("")}</span></div>
       <p class="ck-text">${esc(stepShown(r, p))}</p>
-      ${ings.length ? `<div class="ck-tray"><span class="ck-lab">Toca cada ingrediente cuando lo eches a ${UT_ES[act]||"la preparación"}</span><div class="ck-tcards">${ings.map(x => { const k = r.ingredientes.indexOf(x), c = qtyOf(x.cantidad, fac), e = qtyOf(x.exacta, fac), on = this.added.has(this.i + ":" + k);
-        return `<button class="ck-ingc${on ? " in" : ""}" data-add="${k}" aria-pressed="${on}"><span class="ck-ingok">${cki("ok")}</span><b>${esc(c)}</b><span class="ck-ingn">${esc(x.item.split(/[(,]/)[0].trim())}</span>${e && norm(e)!==norm(c) ? `<small>${esc(e)}</small>` : ""}</button>`; }).join("")}</div></div>` : ""}
+      <div class="gk-play">
+        ${this.stageHTML()}
+        ${ings.length ? `<div class="gk-tray" role="group" aria-label="Ingredientes de este paso">${ings.map(x => { const k = r.ingredientes.indexOf(x), c = qtyOf(x.cantidad, fac), on = st.added.has(k), nm = x.item.split(/[(,]/)[0].trim();
+          return `<button class="gk-tok${on ? " in" : ""}" data-add="${k}" aria-pressed="${on}" aria-label="Echar ${esc(nm)} a ${VES[v][1]}"><span class="gk-tim" style="--c:${foodColor(x.item)}">${Cut.tag(this.cutUrl(k), "", nm)}<span class="gk-ini">${esc(nm.slice(0,1).toUpperCase())}</span></span><b>${esc(c)}</b><span>${esc(nm)}</span></button>`; }).join("")}</div>` : ""}
+        ${this.actHTML()}
+      </div>
       ${mins ? this.timerHTML(mins) : ""}
       ${g ? `<div class="ck-tips">
         ${g.listo_cuando ? `<div class="tip ok">${cki("ok")}<p><b>Está listo cuando</b>${esc(g.listo_cuando)}</p></div>` : ""}
@@ -2684,6 +3180,73 @@ Responde SOLO JSON: {"antes":[string — 2 a 4 cosas para dejar listas antes de 
       </div>` : this.loading ? `<p class="ck-sub"><span class="dot"></span> Preparando consejos para este paso…</p>` : ""}
       ${this.askHTML()}
     </div>`;
+  },
+  inherit(i){                                         // al pasar la mezcla a otro recipiente (o al plato), su contenido la acompaña
+    const v = this.vesselAt(i), vc = this.vc(v);
+    if(vc.pcs.length || vc.liq.length || vc.base || vc.water || vc.from) return;
+    const t = norm(stepText(this.r.pasos[i]));
+    if(!(/fuente|recipiente|plato/.test(v) || /\b(vierte|vacia|pasa|transfiere|traslada|coloca la mezcla|echa la mezcla)/.test(t))) return;
+    for(let k = i - 1; k >= 0; k--){
+      const pv = this.vesselAt(k); if(pv === v || pv === "tabla") continue;
+      const p = this.g.vc[pv]; if(p && (p.pcs.length || p.liq.length || p.base)){ vc.base = p.base; vc.pcs = p.pcs.map(x => ({ ...x })); vc.liq = [...p.liq]; vc.brown = p.brown; vc.from = pv; }
+      break;
+    }
+  },
+  stageHTML(){
+    this.inherit(this.i);
+    const r = this.r, i = this.i, v = this.vesselAt(i), gm = this.gameAt(i), st = this.gs(i), vc = this.vc(v), hot = isHot(v), fire = hot ? (this.g.fire[v] || 0) : 0;
+    if(gm === "hervir" || (v === "olla" && /\bagua\b|caldo/.test(norm(stepText(r.pasos[i]))))) vc.water = true;
+    const res = this.picked.includes(i) ? this.sceneUrl(i) : "", ings = stepIngs(r, r.pasos[i]);
+    const got = ings.filter(x => st.added.has(r.ingredientes.indexOf(x))).length;
+    const wet = vc.water || vc.liq.length > 0, full = vc.pcs.length || vc.liq.length || vc.base || st.board.length;
+    const cls = ["gk", hot ? "stove" : "counter", "v-" + v, st.oven ? "oven" : "", st.lid ? "lid" : "", st.done ? "done" : "", vc.brown ? "brown" : "", wet ? "wet" : "", full ? "full" : ""].filter(Boolean).join(" ");
+    return `<div class="${cls}" id="gk" data-fire="${fire}" data-game="${gm}" style="--p:${this.allIn(i) ? (st.done ? 1 : st.prog) : 0};--d:${st.done ? 1 : 0}">
+      <div class="gk-surf"></div>
+      ${hot ? `<div class="gk-burner"><i class="gk-grate"></i><i class="gk-glow"></i><span class="gk-fl" id="gkFl" style="--lv:${FIRE_LV[fire]}">${FLAMES}</span></div>` : ""}
+      <div class="gk-vessel" id="gkV" role="button" tabindex="-1" aria-label="${esc(VES[v][0])}">
+        <div class="gk-body"></div>
+        <div class="gk-in" id="gkIn">
+          <div class="gk-base"></div>
+          ${v === "plato" ? PIC.tag(picOf(r), "gk-res gk-dish", r.nombre) : ""}
+          ${vc.water ? `<i class="gk-water"></i>` : ""}
+          ${vc.base && vc.base !== res ? PIC.tag(vc.base, "gk-old") : ""}
+          <div class="gk-liqs" id="gkLiq">${vc.liq.map(c => `<i class="gk-liq" style="--c:${c}"></i>`).join("")}</div>
+          <div class="gk-mix" id="gkMix" style="--rot:${st.rot}deg">${vc.pcs.map(pc => this.pcHTML(pc)).join("")}</div>
+          ${v === "tabla" ? `<div class="gk-board" id="gkBoard">${this.boardHTML(st)}</div>` : ""}
+          ${res ? PIC.tag(res, "gk-res", "Así debe verse") : ""}
+          ${hot ? `<span class="gk-bub" aria-hidden="true">${BUBBLES}</span><span class="gk-sz" aria-hidden="true">${SIZZLE}</span>` : ""}
+          <div class="gk-shade"></div>
+        </div>
+        ${v === "tabla" ? `<div class="gk-knife" id="gkKnife">${KNIFE}</div>` : ""}
+        <div class="gk-lid"><i></i></div>
+        <div class="gk-spoon" id="gkSpoon">${SPOON}</div>
+      </div>
+      ${v === "fuente" ? `<div class="gk-ovenfx"></div>` : ""}
+      ${hot ? `<span class="ck-steam" aria-hidden="true"><i></i><i></i><i></i></span>` : ""}
+      <span class="gk-lab" id="gkLab">${esc(VES[v][0])}${hot ? " · fuego " + FIRE[fire] : ""}</span>
+      ${ings.length ? `<span class="gk-cnt" id="ckCnt">${got}/${ings.length}</span>` : ""}
+      ${hot ? `<button class="gk-knob" id="gkKnob" style="--k:${fire}" aria-label="Fuego ${FIRE[fire]}. Toca para cambiarlo"><i></i><b>Fuego</b></button>` : ""}
+      <span class="gk-hint" id="gkHint">${esc(this.hint())}</span>
+      <span class="ck-pop" id="ckPop" aria-live="polite"></span>
+    </div>`;
+  },
+  pcHTML(pc, fresh){
+    if(pc.d) return `<i class="gk-dust" style="left:${pc.x}%;top:${pc.y}%;--c:${pc.c};--r:${pc.r}deg"></i>`;
+    const clipS = pc.w ? `clip-path:inset(${pc.t}% ${100 - pc.l - pc.w}% ${100 - pc.t - pc.w}% ${pc.l}%);` : "";
+    return Cut.tag(pc.u, "gk-pc" + (fresh ? " new" : "")).replace("<img ", `<img style="left:${pc.x}%;top:${pc.y}%;width:${pc.s}%;--r:${pc.r}deg;--c:${pc.fc || "#c9a27a"};${clipS}" data-r="${pc.r}" `);
+  },
+  boardHTML(st){
+    return st.board.map((b, j) => {
+      const u = this.cutUrl(b.k);
+      if(b.c >= 4) return Array.from({ length:10 }, (_, m) => { const s = j*13 + m, a = rnd(s, 1) * Math.PI * 2, rr = 2 + rnd(s, 2) * 13, l = 22 + Math.round(rnd(s, 4) * 34), t = 22 + Math.round(rnd(s, 5) * 34);
+        return Cut.tag(u, "gk-pc gk-bit").replace("<img ", `<img style="left:${(b.x + Math.cos(a)*rr).toFixed(1)}%;top:${(b.y + Math.sin(a)*rr*.75).toFixed(1)}%;--r:${Math.round(rnd(s,3)*360)}deg;--c:${b.fc || "#c9a27a"};clip-path:inset(${t}% ${100-l-22}% ${100-t-22}% ${l}%)" `); }).join("");
+      const K = b.c + 1;
+      return `<span class="gk-item" style="left:${b.x}%;top:${b.y}%;--c:${b.fc || "#c9a27a"}">${Array.from({ length:K }, (_, s) => Cut.tag(u).replace("<img ", `<img style="clip-path:inset(0 ${(100 - (s+1)*100/K).toFixed(1)}% 0 ${(s*100/K).toFixed(1)}%);transform:translateX(${((s - (K-1)/2) * 6).toFixed(1)}%)" `)).join("")}</span>`;
+    }).join("");
+  },
+  actHTML(){
+    const st = this.gs(this.i), G = GAMES[this.gameAt(this.i)];
+    return `<div class="gk-act"><button class="gk-btn${st.done ? " ok" : ""}" id="gkAct" style="--p:${st.done ? 1 : st.prog}" ${st.done ? "disabled" : ""}><span>${st.done ? cki("ok") + " " + esc(G.done) : esc(G.btn)}</span></button></div>`;
   },
 
   timerHTML(mins){
@@ -2713,17 +3276,24 @@ Responde SOLO JSON: {"antes":[string — 2 a 4 cosas para dejar listas antes de 
       <div class="ck-ans" id="ckAns" aria-live="polite">${this.ans ? this.ans : ""}</div></details>`;
   },
 
+
   listHTML(){
     return `<div class="ck-prep"><span class="ck-num">Todos los pasos</span><h2 class="ck-h">${esc(this.r.nombre)}</h2>
-      <ol class="ck-all"><li><button data-jump="-1" class="${this.i<0?"now":""}">Antes de empezar</button></li>${this.r.pasos.map((p,k) => { const m = stepMinutes(p);
-        return `<li><button data-jump="${k}" class="${k===this.i?"now":""} ${k<this.i?"past":""}"><span class="ck-n">${k+1}</span><span>${esc(stepShown(this.r, p))}</span>${m?`<small>${m} min</small>`:""}</button></li>`; }).join("")}</ol></div>`;
+      <ol class="ck-all"><li><button data-jump="-1" class="${this.i<0?"now":""}">Antes de empezar</button></li>${this.r.pasos.map((p,k) => { const m = stepMinutes(p), s = this.g.steps[k]?.stars.size || 0;
+        return `<li><button data-jump="${k}" class="${k===this.i?"now":""} ${k<this.i?"past":""}"><span class="ck-n">${k+1}</span><span>${esc(stepShown(this.r, p))}</span>${s ? `<span class="gk-ss">${"★".repeat(s)}</span>` : m ? `<small>${m} min</small>` : ""}</button></li>`; }).join("")}</ol></div>`;
   },
 
   endHTML(){
-    const O = S.orig, s = savedFor(O), pic = O._thumb || picOf(this.r);
+    const O = S.orig, s = savedFor(O), pic = O._thumb || picOf(this.r), f = this.g.final || { stars:this.stars(), max:this.n*3 }, ch = Chef.info();
+    const big = f.stars >= f.max * .85 ? 3 : f.stars >= f.max * .5 ? 2 : f.stars > 0 ? 1 : 0, sv = this.g.saved;
+    const msg = ["¡Lo lograste!","¡Buen trabajo!","¡Muy bien cocinado!","¡Plato de chef!"][big];
     return `<div class="ck-end">
       ${pic ? `<img src="${pic}" alt="" class="foto">` : ""}
-      <div class="ck-film" aria-label="Tu receta paso a paso">${this.picked.map(k => `<figure>${PIC.tag(this.sceneUrl(k))}<figcaption>${k+1}</figcaption></figure>`).join("")}</div>
+      <div class="gk-win"><div class="gk-big">${[1,2,3].map(k => `<i class="${k <= big ? "on" : ""}">${cki("star")}</i>`).join("")}</div>
+        <b>${msg}</b><span>${f.stars} de ${f.max} ★ · ${this.g.score} puntos</span>
+        ${sv && this.g.score > sv.prev && sv.prev ? `<em>¡Nuevo récord en este plato!</em>` : ""}${sv?.up ? `<em>¡Subiste a nivel ${ch.lv}: ${esc(ch.title)}!</em>` : ""}</div>
+      <div class="gk-chef"><b>Nivel ${ch.lv}</b><span>${esc(ch.title)}</span><i style="--x:${ch.pct}"></i><small>Te faltan ${ch.next} pts para el siguiente nivel</small></div>
+      ${this.picked.length ? `<div class="ck-film" aria-label="Tu receta paso a paso">${this.picked.map(k => `<figure>${PIC.tag(this.sceneUrl(k))}<figcaption>${k+1}</figcaption></figure>`).join("")}</div>` : ""}
       <span class="ck-num">¡A la mesa!</span>
       <h2 class="ck-h">${esc(this.r.nombre)}</h2>
       <p class="ck-sub">¿Cómo te quedó? Lo que anotes aquí aparece la próxima vez que la cocines.</p>
@@ -2736,14 +3306,18 @@ Responde SOLO JSON: {"antes":[string — 2 a 4 cosas para dejar listas antes de 
 
   bind(){
     const B = $("#gBody");
-    B.querySelectorAll("[data-have]").forEach(c => c.onchange = () => { const k = +c.dataset.have; c.checked ? this.have.add(k) : this.have.delete(k); this.draw(); });
+    B.querySelectorAll("[data-have]").forEach(b => b.onclick = () => {
+      const k = +b.dataset.have, on = !this.have.has(k); on ? this.have.add(k) : this.have.delete(k);
+      b.classList.toggle("on", on); b.setAttribute("aria-pressed", on); Sfx.play(on ? "plop" : "click");
+      const sub = B.querySelector(".ck-prep > .ck-sub b"); if(sub) sub.textContent = `${this.have.size}/${(this.r.ingredientes||[]).length}`;
+      if(on && this.have.size === (this.r.ingredientes||[]).length && !this.g.mesa){ this.g.mesa = true; this.g.score += 20; this.hud(); const a = b.getBoundingClientRect(); this.plusAt("¡Mesa lista! +20", a.left + a.width/2, a.top); Sfx.play("coin"); }
+    });
     B.querySelectorAll("[data-serv]").forEach(b => b.onclick = () => { S.servings = Math.max(1, Math.min(40, S.servings + +b.dataset.serv)); this.draw(); });
     B.querySelectorAll("[data-adj]").forEach(b => b.onclick = () => { const m = stepMinutes(this.r.pasos[this.i]); this.adj[this.i] = Math.max(1 - m, (this.adj[this.i]||0) + +b.dataset.adj); this.draw(); });
     B.querySelectorAll("[data-start]").forEach(b => b.onclick = () => this.start(+b.dataset.start));
     B.querySelectorAll("[data-pause]").forEach(b => b.onclick = () => this.pause(b.dataset.pause));
     B.querySelectorAll("[data-plus]").forEach(b => b.onclick = () => this.plus(b.dataset.plus));
     B.querySelectorAll("[data-ack]").forEach(b => b.onclick = () => this.ack(b.dataset.ack));
-    B.querySelectorAll("[data-add]").forEach(b => b.onclick = () => this.addIng(b));
     B.querySelectorAll("[data-jump]").forEach(b => b.onclick = () => this.go(+b.dataset.jump));
     B.querySelectorAll("[data-sug]").forEach(b => b.onclick = () => this.ask(b.dataset.sug));
     B.querySelector(".ck-ask")?.addEventListener("toggle", e => this.askOpen = e.target.open);
@@ -2757,27 +3331,284 @@ Responde SOLO JSON: {"antes":[string — 2 a 4 cosas para dejar listas antes de 
       markCooked(); this.rating = 0; this.notes = null; this.close();
     };
     const back = $("#ckBack"); if(back) back.onclick = () => this.close();
+    if(this.i >= 0 && this.i < this.n && !this.listOpen) this.bindGame();
   },
 
-  /* ----- echar ingredientes: la tarjeta vuela a la olla/sartén y queda marcada ----- */
-  addIng(b){
-    const key = this.i + ":" + b.dataset.add, on = !this.added.has(key), st = $("#ckStage");
-    on ? this.added.add(key) : this.added.delete(key);
-    b.classList.toggle("in", on); b.setAttribute("aria-pressed", on);
-    const ings = stepIngs(this.r, this.r.pasos[this.i]), got = ings.filter(x => this.added.has(this.i + ":" + this.r.ingredientes.indexOf(x))).length;
-    const cnt = $("#ckCnt"); if(cnt) cnt.textContent = cnt.textContent.replace(/^\d+/, got);
-    if(!on || !st) return;
-    const src = b, a = src.getBoundingClientRect(), z = st.getBoundingClientRect();
-    if(!matchMedia("(prefers-reduced-motion: reduce)").matches){
-      const f = src.cloneNode(true); f.className = "ck-fly"; Object.assign(f.style, { left:a.left+"px", top:a.top+"px", width:a.width+"px", height:a.height+"px" });
-      document.body.appendChild(f);
-      const dx = z.left + z.width/2 - (a.left + a.width/2), dy = z.top + z.height*.55 - (a.top + a.height/2);
-      f.animate([{ transform:"translate(0,0) scale(1) rotate(0)", opacity:1 }, { transform:`translate(${dx*.55}px,${dy - 80}px) scale(.8) rotate(-12deg)`, opacity:1, offset:.55 }, { transform:`translate(${dx}px,${dy}px) scale(.25) rotate(-30deg)`, opacity:0 }], { duration:650, easing:"cubic-bezier(.3,.7,.4,1)" }).onfinish = () => f.remove();
+  /* =========== el juego =========== */
+  bindGame(){
+    const V = $("#gkV"), act = $("#gkAct"), gm = this.gameAt(this.i);
+    $("#gkKnob")?.addEventListener("click", () => this.fireStep());
+    $$("#gBody .gk-tok").forEach(b => this.bindTok(b));
+    if(act){
+      if(gm === "licuar"){
+        act.addEventListener("pointerdown", e => { e.preventDefault(); this.holdStart(); });
+        ["pointerup","pointerleave","pointercancel"].forEach(ev => act.addEventListener(ev, () => this.holdStop()));
+        act.addEventListener("click", e => { if(e.detail === 0) this.pulseBlend(); });
+      } else act.addEventListener("click", () => this.action());
     }
-    setTimeout(() => { st.classList.remove("splash"); void st.offsetWidth; st.classList.add("splash");
-      const pop = $("#ckPop"); if(pop){ pop.textContent = got === ings.length ? "¡Todo adentro!" : "+ " + b.querySelector(".ck-ingn")?.textContent; pop.classList.remove("show"); void pop.offsetWidth; pop.classList.add("show"); }
-      try{ navigator.vibrate?.(25); }catch{} }, 520);
+    if(!V) return;
+    if(gm === "revolver") this.bindStir(V);
+    else if(gm === "licuar"){ V.addEventListener("pointerdown", e => { e.preventDefault(); V.setPointerCapture?.(e.pointerId); this.holdStart(); }); ["pointerup","pointercancel"].forEach(ev => V.addEventListener(ev, () => this.holdStop())); }
+    else if(gm === "saltear") V.addEventListener("pointerup", () => this.toss());
+    else if(gm === "picar") V.addEventListener("pointerdown", () => this.chop());
+    else if(gm !== "hervir") V.addEventListener("click", () => this.action());
   },
+  action(){
+    const i = this.i, st = this.gs(i), gm = this.gameAt(i);
+    if(st.done) return;
+    if(gm === "revolver") this.autoStir();
+    else if(gm === "picar") this.chop();
+    else if(gm === "saltear") this.toss();
+    else if(gm === "hervir") this.fireStep(true);
+    else if(gm === "hornear"){ st.oven = true; $("#gk")?.classList.add("oven"); Sfx.play("door"); buzz(30); setTimeout(() => this.complete(), 700); }
+    else if(gm === "reposar"){ st.lid = true; $("#gk")?.classList.add("lid"); Sfx.play("clink"); setTimeout(() => this.complete(), 600); }
+    else if(gm === "servir"){ Sfx.play("plop"); this.complete(); confetti(40); }
+  },
+  redraw(i){ if(i != null && i !== this.i) return; const keep = $("#gBody").scrollTop; this.draw(); $("#gBody").scrollTop = keep; },
+  allIn(i){ const r = this.r, st = this.gs(i); return stepIngs(r, r.pasos[i]).every(x => st.added.has(r.ingredientes.indexOf(x))); },
+  settle(i){                                          // técnica hecha y todo adentro: la foto real de cómo debe quedar pasa a ser el contenido
+    const st = this.gs(i); if(!st.done || !this.allIn(i) || st.settled) return false;
+    st.settled = true;
+    const v = this.vesselAt(i), vc = this.vc(v), res = this.picked.includes(i) ? this.sceneUrl(i) : "";
+    if(res && PIC.done.has(res) && v !== "tabla"){ vc.base = res; vc.pcs = []; vc.liq = []; vc.brown = false; return true; }
+    return false;
+  },
+  complete(){
+    const i = this.i, st = this.gs(i), v = this.vesselAt(i), vc = this.vc(v), gm = this.gameAt(i), r = this.r;
+    if(st.done) return;
+    st.done = true; st.prog = 1;
+    if(gm === "saltear") vc.brown = true;
+    if(gm === "licuar" && vc.pcs.length){ const cols = vc.pcs.map(p => p.c || Cut.get(p.u)?.c).filter(Boolean); vc.liq = [cols.length ? colorOf("", "liq", cols[0]) : "rgba(200,150,80,.8)"]; vc.pcs = []; }
+    const res = this.settle(i);
+    if(!stepIngs(r, r.pasos[i]).length) this.award(i, "i", 0, "");
+    this.award(i, "t", 40, GAMES[gm].done + " +40");
+    if(!isHot(v) && !stepMinutes(r.pasos[i])) setTimeout(() => this.award(i, "p", 20, "¡Punto exacto! +20"), 900);
+    Sfx.play("win"); buzz([20, 40, 20]);
+    if(gm === "saltear") $("#gk")?.classList.add("brown");
+    this.refresh();
+    if(gm === "licuar"){                              // se actualiza en su lugar: redibujar con el dedo apretado podría tocar "Siguiente"
+      const mix = $("#gkMix"), lq = $("#gkLiq"); if(mix) mix.innerHTML = "";
+      if(lq) lq.innerHTML = vc.liq.map(c => `<i class="gk-liq new" style="--c:${c}"></i>`).join("");
+      $("#gk")?.classList.add("wet", "full");
+    }
+  },
+
+  /* fuego: la perilla pasa por apagado, bajo, medio, medio-alto y alto */
+  fireStep(up){
+    const i = this.i, v = this.vesselAt(i); if(!isHot(v)) return;
+    const was = this.g.fire[v] || 0, now = up ? Math.min(4, was + 1) : (was + 1) % 5;
+    this.g.fire[v] = now;
+    const s = $("#gk"); if(s) s.dataset.fire = now;
+    $("#gkFl")?.style.setProperty("--lv", FIRE_LV[now]);
+    const k = $("#gkKnob"); if(k){ k.style.setProperty("--k", now); k.setAttribute("aria-label", `Fuego ${FIRE[now]}. Toca para cambiarlo`); }
+    const l = $("#gkLab"); if(l) l.textContent = `${VES[v][0]} · fuego ${FIRE[now]}`;
+    Sfx.play(was === 0 && now > 0 ? "fire" : "click"); buzz(10);
+    if(now === this.recFire(i)) this.award(i, "p", 20, `¡Fuego ${FIRE[now]}, perfecto! +20`);
+    clearTimeout(this.boilT);
+    if(this.gameAt(i) === "hervir" && !this.gs(i).done && now >= Math.min(3, this.recFire(i))){
+      this.gs(i).prog = .5; this.refresh();
+      this.boilT = setTimeout(() => { if(this.i === i && (this.g.fire[v]||0) >= Math.min(3, this.recFire(i))) this.complete(); }, 1600);
+    }
+    this.refresh();
+  },
+
+  /* arrastrar ingredientes a la olla (o tocarlos para que salten solos) */
+  bindTok(b){
+    b.addEventListener("pointerdown", e => {
+      if(b.classList.contains("in") || e.button > 0) return;
+      const k = +b.dataset.add, sx = e.clientX, sy = e.clientY; let ghost = null;
+      try{ b.setPointerCapture(e.pointerId); }catch{}
+      const move = ev => {
+        if(!ghost && Math.hypot(ev.clientX - sx, ev.clientY - sy) > 8){ ghost = this.ghost(b, ev.clientX, ev.clientY); this.dragging = true; }
+        if(ghost){ ghost.style.left = ev.clientX + "px"; ghost.style.top = ev.clientY + "px"; $("#gk")?.classList.toggle("over", this.overVessel(ev.clientX, ev.clientY)); }
+      };
+      const up = ev => {
+        b.removeEventListener("pointermove", move); b.removeEventListener("pointerup", up); b.removeEventListener("pointercancel", up);
+        if(!ghost) return;
+        $("#gk")?.classList.remove("over");
+        if(ev.type === "pointerup" && this.overVessel(ev.clientX, ev.clientY)) this.drop(k, ghost, ev.clientX, ev.clientY);
+        else { const a = b.getBoundingClientRect(); ghost.animate([{ left:ghost.style.left, top:ghost.style.top }, { left:(a.left + a.width/2) + "px", top:(a.top + a.height/2) + "px", opacity:.3 }], { duration:260, easing:"ease-out" }).onfinish = () => ghost.remove(); }
+        setTimeout(() => this.dragging = false, 0);
+      };
+      b.addEventListener("pointermove", move); b.addEventListener("pointerup", up); b.addEventListener("pointercancel", up);
+    });
+    b.addEventListener("click", () => {
+      if(this.dragging) return;
+      if(b.classList.contains("in")){ b.animate([{ transform:"translateX(0)" }, { transform:"translateX(-5px)" }, { transform:"translateX(5px)" }, { transform:"translateX(0)" }], { duration:260 }); return; }
+      this.drop(+b.dataset.add, null);
+    });
+  },
+  ghost(b, x, y){
+    const im = b.querySelector("img"), g = document.createElement("div"); g.className = "gk-drag";
+    g.innerHTML = im && !im.classList.contains("wait") && !im.classList.contains("broken") ? `<img src="${im.src}" class="${im.classList.contains("raw") ? "raw" : ""}" alt="">` : `<span class="gk-tim"><span class="gk-ini" style="opacity:1">${esc(b.querySelector(".gk-ini")?.textContent || "")}</span></span>`;
+    if(x == null){ const a = (im || b).getBoundingClientRect(); x = a.left + a.width/2; y = a.top + a.height/2; }
+    g.style.left = x + "px"; g.style.top = y + "px"; document.body.appendChild(g); return g;
+  },
+  overVessel(x, y){ const r = $("#gkV")?.getBoundingClientRect(); if(!r) return false; const m = r.width * .12; return x > r.left - m && x < r.right + m && y > r.top - m && y < r.bottom + m; },
+  drop(k, ghost, cx, cy){
+    const i = this.i, st = this.gs(i), IN = $("#gkIn"), tok = $(`#gBody .gk-tok[data-add="${k}"]`);
+    if(st.added.has(k) || !IN){ ghost?.remove(); return; }
+    st.added.add(k); tok?.classList.add("in"); tok?.setAttribute("aria-pressed", "true");
+    const ir = IN.getBoundingClientRect(), ccx = ir.left + ir.width/2, ccy = ir.top + ir.height/2, R = ir.width * .34;
+    let tx = cx ?? ccx + (rnd(i*17 + k, 1) - .5) * R, ty = cy ?? ccy + (rnd(i*17 + k, 2) - .5) * R;
+    const dx = tx - ccx, dy = ty - ccy, dd = Math.hypot(dx, dy); if(dd > R){ tx = ccx + dx / dd * R; ty = ccy + dy / dd * R; }
+    const at = { x: (tx - ir.left) / ir.width * 100, y: (ty - ir.top) / ir.height * 100 };
+    const item = this.r.ingredientes[k].item, kind = this.vesselAt(i) === "tabla" ? "sol" : kindOf(item);
+    const fly = ghost || this.ghost(tok), land = () => { fly.remove(); this.land(k, at, tx, ty, kind); };
+    if(calm()){ land(); return; }
+    const fr = fly.getBoundingClientRect(), fx = fr.left + fr.width/2, fy = fr.top + fr.height/2;
+    fly.style.left = fx + "px"; fly.style.top = fy + "px";
+    if(kind === "sol"){
+      fly.animate([{ transform:"translate(-50%,-50%) rotate(-8deg) scale(1.1)" }, { transform:`translate(-50%,-50%) translate(${(tx-fx)*.5}px,${(ty-fy)*.5 - 90}px) rotate(-40deg) scale(1)`, offset:.5 }, { transform:`translate(-50%,-50%) translate(${tx-fx}px,${ty-fy}px) rotate(-80deg) scale(.42)` }],
+        { duration:560, easing:"cubic-bezier(.35,.6,.5,1)", fill:"forwards" }).onfinish = land;
+    } else {
+      const ax = tx - fx + 26, ay = ir.top - fy - 26, base = `translate(-50%,-50%) translate(${ax}px,${ay}px)`;
+      fly.animate([{ transform:"translate(-50%,-50%) rotate(-8deg) scale(1.1)" }, { transform:base + " scale(.95)" }], { duration:430, easing:"ease-out", fill:"forwards" }).onfinish = () => {
+        const tilt = kind === "liq" ? -118 : -150;
+        fly.animate([{ transform:base + " scale(.95)" }, { transform:base + ` rotate(${tilt}deg) scale(.95)`, offset:.28 }, { transform:base + ` rotate(${tilt + 12}deg) scale(.95)`, offset:.5 }, { transform:base + ` rotate(${tilt}deg) scale(.95)`, offset:.72 }, { transform:base + ` rotate(${tilt}deg) scale(.6)`, opacity:0 }],
+          { duration:1000, easing:"ease-in-out", fill:"forwards" }).onfinish = land;
+        setTimeout(() => this.pour(kind, fx + ax - 20, fy + ay + 14, ty, colorOf(item, kind, Cut.get(this.cutUrl(k))?.c)), 260);
+        Sfx.play(kind === "liq" ? "pour" : "shake");
+      };
+    }
+  },
+  pour(kind, x, y0, y1, col){
+    if(kind === "liq"){
+      const s = document.createElement("i"); s.className = "gk-stream"; s.style.left = x + "px"; s.style.top = y0 + "px"; s.style.height = Math.max(20, y1 - y0) + "px";
+      s.style.background = `linear-gradient(${col}, ${col})`; document.body.appendChild(s);
+      s.animate([{ transform:"scaleY(0)", opacity:1 }, { transform:"scaleY(1)", opacity:1, offset:.25 }, { transform:"scaleY(1)", opacity:1, offset:.8 }, { transform:"scaleY(1) translateY(30%)", opacity:0 }], { duration:760, easing:"ease-in" }).onfinish = () => s.remove();
+    } else {
+      const box = document.createElement("div"); box.className = "gk-fx"; box.style.left = x + "px"; box.style.top = y0 + "px"; document.body.appendChild(box);
+      for(let j = 0; j < 22; j++){ const d = document.createElement("i"); d.className = "gk-drop"; d.style.width = d.style.height = (2 + Math.random()*2.5) + "px"; d.style.background = col; box.appendChild(d);
+        d.animate([{ transform:"translate(0,0)", opacity:1 }, { transform:`translate(${(Math.random()-.5)*44}px,${y1 - y0}px)`, opacity:.85 }], { duration:420 + Math.random()*320, delay:Math.random()*380, easing:"ease-in", fill:"forwards" }); }
+      setTimeout(() => box.remove(), 1300);
+    }
+  },
+  splash(x, y, col){
+    if(calm()) return;
+    const box = document.createElement("div"); box.className = "gk-fx"; box.style.left = x + "px"; box.style.top = y + "px"; document.body.appendChild(box);
+    const ring = document.createElement("i"); ring.className = "gk-ring"; box.appendChild(ring);
+    ring.animate([{ transform:"translate(-50%,-50%) scale(.2)", opacity:.9 }, { transform:"translate(-50%,-50%) scale(1.5)", opacity:0 }], { duration:620, easing:"ease-out" });
+    for(let j = 0; j < 9; j++){ const d = document.createElement("i"); d.className = "gk-drop"; d.style.background = col; box.appendChild(d);
+      const a = j / 9 * Math.PI * 2 + Math.random() * .6, r1 = 24 + Math.random() * 30;
+      d.animate([{ transform:"translate(-50%,-50%) scale(1)", opacity:1 }, { transform:`translate(calc(-50% + ${Math.cos(a)*r1}px), calc(-50% + ${Math.sin(a)*r1 - 18}px)) scale(.8)`, opacity:1, offset:.55 }, { transform:`translate(calc(-50% + ${Math.cos(a)*r1*1.2}px), calc(-50% + ${Math.sin(a)*r1 + 8}px)) scale(.4)`, opacity:0 }], { duration:620, easing:"ease-out" }); }
+    setTimeout(() => box.remove(), 700);
+  },
+  land(k, at, tx, ty, kind){
+    const i = this.i, v = this.vesselAt(i), st = this.gs(i), r = this.r, s = $("#gk");
+    if(!s) return;
+    const u = this.cutUrl(k), item = r.ingredientes[k].item, cut = Cut.get(u), col = colorOf(item, kind, cut?.c);
+    if(v === "tabla"){
+      st.board.push({ k, x: Math.max(24, Math.min(70, at.x)), y: Math.max(30, Math.min(70, at.y)), c:0, fc: foodColor(item) });
+      $("#gkBoard").innerHTML = this.boardHTML(st); this.aimKnife();
+    } else {
+      const vc = this.vc(v), seed = i*31 + k*7;
+      if(kind === "liq"){ vc.liq.push(col); if(vc.liq.length > 3) vc.liq.shift(); $("#gkLiq").insertAdjacentHTML("beforeend", `<i class="gk-liq new" style="--c:${col}"></i>`); s.classList.add("wet"); }
+      else {
+        const out = [], big = !isHot(v) && v !== "licuadora";
+        if(kind === "pow") out.push({ d:1, x: +at.x.toFixed(1), y: +at.y.toFixed(1), r: Math.round(rnd(seed, 3) * 360), c: col });
+        else for(let j = 0; j < (big ? 3 : 5); j++){
+          const a = rnd(seed, j*3 + 1) * Math.PI * 2, rad = Math.sqrt(rnd(seed, j*3 + 2)) * 28;
+          const x = j === 0 ? at.x : 50 + Math.cos(a) * rad, y = j === 0 ? at.y : 50 + Math.sin(a) * rad, rot = Math.round(rnd(seed, j*3 + 3) * 360);
+          const fc = foodColor(item);
+          out.push(j === 0 || big ? { u, x: +x.toFixed(1), y: +y.toFixed(1), s: big ? 38 : 34, r: rot, c: cut?.c, fc } : { u, x: +x.toFixed(1), y: +y.toFixed(1), s: 46, r: rot, l: 20 + Math.round(rnd(seed, j + 40) * 32), t: 20 + Math.round(rnd(seed, j + 50) * 32), w: 30, c: cut?.c, fc });
+        }
+        vc.pcs.push(...out); if(vc.pcs.length > 36) vc.pcs.splice(0, vc.pcs.length - 36);
+        const mix = $("#gkMix"); out.forEach(pc => mix.insertAdjacentHTML("beforeend", this.pcHTML(pc, true)));
+      }
+    }
+    s.classList.add("full");
+    const fire = this.g.fire[v] || 0;
+    this.splash(tx, ty, kind === "liq" || (isHot(v) && fire) ? "rgba(255,255,255,.9)" : col);
+    Sfx.play(isHot(v) && fire && kind !== "pow" ? "sizzle" : kind === "liq" ? "fizz" : "plop"); buzz(18);
+    this.g.score += 10; this.hud(); this.plusAt("+10", tx, ty - 20);
+    const ings = stepIngs(r, r.pasos[i]);
+    if(ings.every(x => st.added.has(r.ingredientes.indexOf(x)))){ this.award(i, "i", 25, v === "tabla" ? "¡Todo en la tabla! +25" : "¡Todo adentro! +25"); this.settle(i); }
+    this.refresh();
+  },
+
+  /* revolver: círculos con el dedo dentro de la olla */
+  bindStir(V){
+    let on = false, last = 0, acc = 0;
+    const ang = e => { const r = V.getBoundingClientRect(); return Math.atan2(e.clientY - (r.top + r.height/2), e.clientX - (r.left + r.width/2)); };
+    V.addEventListener("pointerdown", e => { if(this.gs(this.i).done) return; on = true; last = ang(e); acc = 0; try{ V.setPointerCapture(e.pointerId); }catch{} $("#gk")?.classList.add("stir"); this.spoonAt(e.clientX, e.clientY); });
+    V.addEventListener("pointermove", e => {
+      if(!on) return; const st = this.gs(this.i), a = ang(e); let d = a - last; if(d > Math.PI) d -= 2*Math.PI; if(d < -Math.PI) d += 2*Math.PI; last = a;
+      this.spoonAt(e.clientX, e.clientY); this.stirBy(d); acc += Math.abs(d); if(acc > 1.6){ acc = 0; Sfx.play("swish"); }
+      if(st.done){ on = false; $("#gk")?.classList.remove("stir"); }
+    });
+    const end = () => { on = false; $("#gk")?.classList.remove("stir"); };
+    V.addEventListener("pointerup", end); V.addEventListener("pointercancel", end);
+  },
+  spoonAt(x, y){
+    const V = $("#gkV"), sp = $("#gkSpoon"); if(!V || !sp) return;
+    const r = V.getBoundingClientRect(), cx = r.left + r.width/2, cy = r.top + r.height/2; let dx = x - cx, dy = y - cy;
+    const d = Math.hypot(dx, dy), max = r.width * .33; if(d > max){ dx = dx / d * max; dy = dy / d * max; }
+    sp.style.setProperty("--sx", (50 + dx / r.width * 100) + "%"); sp.style.setProperty("--sy", (50 + dy / r.height * 100) + "%");
+    sp.style.setProperty("--sr", (Math.atan2(dy, dx) * 180 / Math.PI - 90) + "deg");
+  },
+  stirBy(d){
+    const i = this.i, st = this.gs(i); if(st.done) return;
+    st.rot += d * 180 / Math.PI * .7; $("#gkMix")?.style.setProperty("--rot", st.rot + "deg");
+    st.prog = Math.min(1, st.prog + Math.abs(d) / (2 * Math.PI * GAMES.revolver.need));
+    if(st.prog > .995) this.complete(); else this.refresh();
+  },
+  autoStir(){
+    if(this.stirring) return; const V = $("#gkV"); if(!V) return; this.stirring = true;
+    const r = V.getBoundingClientRect(), cx = r.left + r.width/2, cy = r.top + r.height/2, R = r.width * .22, t0 = performance.now(), dur = calm() ? 10 : 850;
+    $("#gk")?.classList.add("stir"); Sfx.play("swish"); let lastA = 0;
+    const f = now => {
+      const t = Math.min(1, (now - t0) / dur), a = t * Math.PI * 2;
+      this.spoonAt(cx + Math.cos(a) * R, cy + Math.sin(a) * R); this.stirBy(a - lastA); lastA = a;
+      if(t < 1 && !this.gs(this.i).done) requestAnimationFrame(f); else { this.stirring = false; $("#gk")?.classList.remove("stir"); }
+    };
+    requestAnimationFrame(f);
+  },
+
+  /* picar: cada toque es un corte */
+  aimKnife(){
+    const st = this.gs(this.i), b = st.board.find(x => x.c < 4), kn = $("#gkKnife"); if(!kn) return;
+    kn.style.setProperty("--kx", (b ? b.x : 60) + "%"); kn.style.setProperty("--ky", (b ? b.y : 45) + "%");
+  },
+  chop(){
+    const i = this.i, st = this.gs(i); if(st.done) return;
+    const ings = stepIngs(this.r, this.r.pasos[i]), b = st.board.find(x => x.c < 4), kn = $("#gkKnife");
+    if(!b && ings.length && st.board.length < ings.length){ this.pop("Primero pon un ingrediente en la tabla"); return; }
+    this.aimKnife();
+    if(kn){ kn.classList.remove("chop"); void kn.offsetWidth; kn.classList.add("chop"); }
+    Sfx.play("chop"); buzz(12);
+    if(b){ b.c++; $("#gkBoard").innerHTML = this.boardHTML(st); if(b.c >= 4){ Sfx.play("plop"); this.g.score += 5; this.hud(); } }
+    const total = Math.max(1, ings.length) * 4, made = ings.length ? st.board.reduce((a, x) => a + Math.min(4, x.c), 0) : Math.round(st.prog * total) + 1;
+    st.prog = Math.min(1, made / total);
+    setTimeout(() => this.aimKnife(), 220);
+    if(st.prog > .995) this.complete(); else this.refresh();
+  },
+
+  /* saltear: la sartén salta y todo se voltea */
+  toss(){
+    const i = this.i, st = this.gs(i), V = $("#gkV"); if(st.done || !V || this.tossing) return;
+    this.tossing = true; setTimeout(() => this.tossing = false, 480);
+    if(!calm()){
+      V.animate([{ transform:"translate(-50%,-50%)" }, { transform:"translate(-50%,-60%) rotate(-5deg) scale(1.04)", offset:.35 }, { transform:"translate(-50%,-50%)" }], { duration:520, easing:"ease-out" });
+      $$("#gkMix .gk-pc").forEach((p, j) => { const r0 = +p.dataset.r || 0, r1 = r0 + 140 + Math.round(rnd(j, st.flips) * 200);
+        p.animate([{ transform:`translate(-50%,-50%) rotate(${r0}deg)` }, { transform:`translate(-50%,-${110 + rnd(j, 9)*90}%) rotate(${(r0 + r1)/2}deg) scale(1.15)`, offset:.45 }, { transform:`translate(-50%,-50%) rotate(${r1}deg)` }], { duration:560, easing:"ease-out" }); });
+    }
+    Sfx.play("toss"); buzz(20);
+    st.flips++; st.prog = Math.min(1, st.flips / GAMES.saltear.need);
+    if(st.prog > .995) setTimeout(() => this.complete(), 520); else this.refresh();
+  },
+
+  /* licuar: mantener presionado */
+  holdStart(){
+    const st = this.r && this.i >= 0 && this.i < this.n ? this.gs(this.i) : null; if(!st || st.done || this.holdT) return;
+    $("#gk")?.classList.add("spin"); Sfx.whir(true); buzz(30); let last = performance.now();
+    const f = now => { const dt = now - last; last = now; st.prog = Math.min(1, st.prog + dt / 2600); this.refresh();
+      if(st.prog > .995){ this.holdStop(); this.complete(); return; } this.holdT = requestAnimationFrame(f); };
+    this.holdT = requestAnimationFrame(f);
+  },
+  holdStop(){ if(this.holdT) cancelAnimationFrame(this.holdT); this.holdT = 0; $("#gk")?.classList.remove("spin"); Sfx.whir(false); },
+  pulseBlend(){ const st = this.gs(this.i); if(st.done) return; $("#gk")?.classList.add("spin"); Sfx.whir(true);
+    setTimeout(() => { this.holdStop(); st.prog = Math.min(1, st.prog + .34); if(st.prog > .995) this.complete(); else this.refresh(); }, 600); },
 
   /* ----- temporizadores (varios a la vez, siguen aunque cambies de paso) ----- */
   left(t){ return t.paused ? t.leftAt : (t.end - Date.now())/1000; },
@@ -2787,6 +3618,7 @@ Responde SOLO JSON: {"antes":[string — 2 a 4 cosas para dejar listas antes de 
     this.saveTimers(); beep(1);
     try{ if(window.Notification && Notification.permission === "default") Notification.requestPermission(); }catch{}
     this.draw();
+    if(!isHot(this.vesselAt(this.i))) this.award(this.i, "p", 20, "¡Cronómetro en marcha! +20");
   },
   find(id){ return this.timers.find(t => t.id === id); },
   pause(id){ const t = this.find(id); if(!t) return;
@@ -2810,6 +3642,15 @@ Responde SOLO JSON: {"antes":[string — 2 a 4 cosas para dejar listas antes de 
     this.drawTimers();
     const now = Date.now();
     if(ring && now - (this.lastRing||0) > 2200){ this.lastRing = now; beep(3); try{ navigator.vibrate?.([300,150,300]); }catch{} }
+    if(this.i >= 0 && this.i < this.n && !this.listOpen){                // el resultado aparece mientras corre el tiempo, y la cocina suena
+      const s = $("#gk"), t = this.timers.find(x => x.step === this.i);
+      if(s) s.style.setProperty("--tp", t && this.allIn(this.i) ? Math.min(1, 1 - Math.max(0, this.left(t)) / t.total).toFixed(3) : 0);
+      const v = this.vesselAt(this.i), f = this.g.fire[v] || 0, vc = this.g.vc[v];
+      if(Sfx.on && f && vc && !document.hidden){
+        if(v === "sarten" && (vc.pcs.length || vc.liq.length) && Math.random() < .55) Sfx.play("fizz");
+        if(v === "olla" && (vc.water || vc.liq.length) && f >= 2) for(let j = 1; j < f; j++) setTimeout(() => Sfx.play("bubble"), Math.random() * 450);
+      }
+    }
   },
   notify(t){
     const msg = `${t.label}: ¡tiempo cumplido!`;
@@ -2884,6 +3725,7 @@ const n2 = v => String(v);
 $("#gClose").onclick = () => Cook.close();
 $("#gVoice").onclick = e => { Cook.voice = !Cook.voice; e.currentTarget.setAttribute("aria-pressed", Cook.voice); if(Cook.voice) Cook.speak(); else { try{ speechSynthesis.cancel(); }catch{} if(Cook.hands) Cook.setHands(false); } };
 $("#gHands").onclick = () => Cook.setHands(!Cook.hands);
+$("#gSfx").onclick = e => { Sfx.on = !Sfx.on; lsSet("recetok_sfx", Sfx.on); e.currentTarget.setAttribute("aria-pressed", Sfx.on); if(Sfx.on) Sfx.play("coin"); else Sfx.whir(false); };
 $("#gSize").onclick = e => { const on = $("#game").classList.toggle("big"); e.currentTarget.setAttribute("aria-pressed", on); };
 $("#gPrev").onclick = () => Cook.prev();
 $("#gNext").onclick = () => Cook.next();
@@ -2897,7 +3739,7 @@ document.addEventListener("keydown", e => {
 (() => { let sx = null, sy = null; const b = $("#gBody");
   b.addEventListener("touchstart", e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive:true });
   b.addEventListener("touchend", e => { if(sx == null) return; const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy; sx = null;
-    if(Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy)*1.5 && !e.target.closest("input,textarea,.ck-ask")){ dx < 0 ? Cook.next() : Cook.prev(); } }, { passive:true });
+    if(Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy)*1.5 && !e.target.closest("input,textarea,.ck-ask,.gk-play")){ dx < 0 ? Cook.next() : Cook.prev(); } }, { passive:true });
 })();
 document.addEventListener("visibilitychange", () => { if(!document.hidden && !$("#game").hidden){ Cook.keepAwake(); Cook.tickTimers(); } });
 

@@ -20,6 +20,7 @@ Ya existe el proyecto **recetok** en tu equipo de Vercel ("Mariano's team"), con
 1. Crea una clave en https://console.anthropic.com (sección *API Keys*) y carga saldo.
 2. En Vercel: proyecto **recetok** → *Settings → Environment Variables* → agrega
    - `GEMINI_API_KEY` = tu clave gratis de https://aistudio.google.com/apikey (marca *Production* y *Preview*).
+   - Opcional, para fotos realistas y rápidas (platos, pasos e ingredientes del modo cocina): `POLLINATIONS_API_KEY` = tu clave gratis de https://enter.pollinations.ai (entra con tu cuenta de GitHub o Google y copia la clave secreta, la que empieza con `sk_`). Sin esta clave las fotos salen con un modelo básico, con logo y como máximo una cada 45 segundos.
 3. `APP_CODE` ya está creada. Es el código que la app te pide una vez por dispositivo. Puedes cambiarlo ahí mismo cuando quieras.
 4. Vuelve a publicar (*Deployments → ⋯ → Redeploy*) para que tome la clave.
 
@@ -33,4 +34,5 @@ Ya existe el proyecto **recetok** en tu equipo de Vercel ("Mariano's team"), con
 
 - Tus recetas se guardan en cada dispositivo. Para pasarlas a otro, usa **Recetario → Exportar copia** e **Importar** en el otro.
 - El código de acceso evita que otras personas gasten tu saldo si encuentran el link. No lo compartas con quien no quieras.
+- Modo cocina: es un juego (estufa, ollas, ingredientes que se arrastran, minijuegos, estrellas y nivel de cocinero) que acompaña la receta real paso a paso. Las fotos recortadas de verduras, frutas y especias comunes vienen de TheMealDB (gratis); el resto, de Pollinations si configuras `POLLINATIONS_API_KEY`, y si no, se dibujan trozos con el color del alimento.
 - Archivos: `index.html` (la app), `standalone.js` (conexión con la IA e instalación), `sw.js` (modo sin conexión), `manifest.webmanifest` e `icons/` (ícono y nombre de la app), `api/claude.js` (servidor que guarda tu clave).
