@@ -34,7 +34,7 @@ async function mealNames(){
 const words = s => String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z ]/g, " ").split(/\s+/).filter(Boolean)
   .map(w => w.length > 3 ? w.replace(/(oes|ies)$/, m => m === "ies" ? "y" : "o").replace(/s$/, "") : w);
 const PACKAGED = /chicken|beef|pork|lamb|turkey|duck|mince|bacon|sausage|ham|steak|fillet|breast|thigh|wing|fish|salmon|tuna|cod|prawn|shrimp|cream|milk|cheese|butter|yogurt|yoghurt|tofu|stock|broth|sauce|ketchup|mayo|mustard|paste|oil|vinegar|pasta|noodle|spaghetti|penne|macaroni|bread|tortilla|wine|beer|juice|chocolate|biscuit|cereal|flour|sugar|rice|bean|lentil|chickpea|can|tin|egg/;
-const SYN = { cilantro:"coriander", scallion:"spring onion", "green onion":"spring onion", "bell pepper":"red pepper", "yellow onion":"onion", "white onion":"onion", "garlic clove":"garlic" };
+const SYN = { scallion:"spring onion", "green onion":"spring onion", "bell pepper":"red pepper", "red bell pepper":"red pepper", "green bell pepper":"green pepper", "yellow bell pepper":"yellow pepper", "white onion":"onion", corn:"corn on the cob", "sweet corn":"corn on the cob", yam:"sweet potato", eggplant:"aubergine", "cassava root":"cassava", "lemon juice":"lemon", "lime juice":"lime", "fresh cilantro":"cilantro", "fresh parsley":"parsley", "fresh basil":"basil" };
 function bestMeal(q, list){
   let key = words(q).join(" "); key = words(SYN[key] || key).join(" ");
   if(!key || PACKAGED.test(key)) return null;
