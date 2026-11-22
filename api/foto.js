@@ -104,12 +104,12 @@ async function commons(q, diag){
     return { src:"commons", title:p.title, thumb:ii.thumburl, url:ii.descriptionurl, lic:String(m.LicenseShortName?.value || ""), by:String(m.Artist?.value || "").replace(/<[^>]+>/g, "").slice(0, 80), mime:ii.mime }; })
     .filter(x => x.thumb && /jpeg|png/.test(x.mime || "") && /public domain|cc0|pd/i.test(x.lic));
 }
-const GEM_TEXT = () => [...new Set([process.env.GEMINI_MODEL, "gemini-3.8-flash", "gemini-3.6-flash", "gemini-3-flash-preview"].filter(Boolean))];
+const GEM_TEXT = () => [...new Set([process.env.GEMINI_MODEL, "gemini-3.6-flash", "gemini-3.8-flash", "gemini-3-flash-preview"].filter(Boolean))];
 async function gemJSON(models, parts, diag, extra = {}){
   const key = process.env.GEMINI_API_KEY; if(!key) return null;
   for(const m of models){
     const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(m) + ":generateContent", { method:"POST",
-      headers:{ "content-type":"application/json", "x-goog-api-key":key }, signal: AbortSignal.timeout(25000),
+      headers:{ "content-type":"application/json", "x-goog-api-key":key }, signal: AbortSignal.timeout(14000),
       body: JSON.stringify({ contents:[{ role:"user", parts }], generationConfig:{ responseMimeType:"application/json", ...extra } }) }).catch(e => ({ ok:false, status:"err:" + e?.name }));
     const d = r.json ? await r.json().catch(() => ({})) : {};
     const txt = (d?.candidates?.[0]?.content?.parts || []).filter(x => x.text).map(x => x.text).join("");
@@ -119,6 +119,7 @@ async function gemJSON(models, parts, diag, extra = {}){
   }
   return null;
 }
+let WANT_IMG = false;
 async function stockDiag(q){
   const diag = [], t0 = Date.now();
   const [a, b] = await Promise.all([openverse(q, diag).catch(() => []), commons(q, diag).catch(() => [])]);
@@ -132,10 +133,11 @@ async function stockDiag(q){
   let seg = null;
   if(ch){
     const sp = [{ text:`Give the segmentation mask for the main "${q}" in this photo. Output a JSON list where each entry has "box_2d", "mask" and "label".` }, { inlineData:{ mimeType:ch.img.mime, data:ch.img.data } }];
-    const sd = await gemJSON(["gemini-2.5-flash"], sp, diag, { thinkingConfig:{ thinkingBudget:0 } });
+    const sd = await gemJSON(["gemini-3.6-flash"], sp, diag, { thinkingConfig:{ thinkingLevel:"minimal" } });
     seg = Array.isArray(sd) ? sd.map(x => ({ label:x.label, box:x.box_2d, mask: String(x.mask || "").slice(0, 40), maskLen: String(x.mask || "").length })) : sd;
   }
-  return { ms: Date.now() - t0, diag, cands: cands.map(c => ({ src:c.src, title:c.title, lic:c.lic, from:c.from, thumb:c.thumb })), pick, chosen: ch && { title: ch.title, thumb: ch.thumb, lic: ch.lic, by: ch.by }, seg };
+  const big = ch && WANT_IMG ? await fetch(ch.thumb.replace(/\/\d+px-/, "/500px-"), { headers:UA, signal: AbortSignal.timeout(8000) }).then(async r => r.ok ? Buffer.from(await r.arrayBuffer()).toString("base64") : "").catch(() => "") : "";
+  return { ms: Date.now() - t0, b64: big, diag, cands: cands.map(c => ({ src:c.src, title:c.title, lic:c.lic, from:c.from, thumb:c.thumb })), pick, chosen: ch && { title: ch.title, thumb: ch.thumb, lic: ch.lic, by: ch.by }, seg };
 }
 
 // Ancho y alto reales de un JPEG/PNG (para comprobar la resolución)
@@ -163,7 +165,7 @@ async function pexels(q, key){
 module.exports = async function handler(req, res){
   const deadline = Date.now() + 55000, info = req.query?.info;
   if(info === "list"){ res.setHeader("Cache-Control", "no-store"); return res.status(200).json({ names: await mealNames() }); }
-  if(info === "stock"){ res.setHeader("Cache-Control", "no-store"); return res.status(200).json(await stockDiag(String(req.query?.q || "").slice(0, 60))); }
+  if(info === "stock"){ WANT_IMG = !!req.query?.img; res.setHeader("Cache-Control", "no-store"); return res.status(200).json(await stockDiag(String(req.query?.q || "").slice(0, 60))); }
   const q = String(req.query?.q || "").replace(/\s+/g, " ").trim().slice(0, 300);
   const seed = Math.abs(parseInt(req.query?.s, 10) || 7) % 1000000;
   const t = String(req.query?.t || "");
