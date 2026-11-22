@@ -35,13 +35,14 @@ const words = s => String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, 
   .map(w => w.length > 3 ? w.replace(/(oes|ies)$/, m => m === "ies" ? "y" : "o").replace(/s$/, "") : w);
 const PACKAGED = /chicken|beef|pork|lamb|turkey|duck|mince|bacon|sausage|ham|steak|fillet|breast|thigh|wing|fish|salmon|tuna|cod|prawn|shrimp|cream|milk|cheese|butter|yogurt|yoghurt|tofu|stock|broth|sauce|ketchup|mayo|mustard|paste|oil|vinegar|pasta|noodle|spaghetti|penne|macaroni|bread|tortilla|wine|beer|juice|chocolate|biscuit|cereal|flour|sugar|rice|bean|lentil|chickpea|can|tin|egg/;
 const SYN = { scallion:"spring onion", "green onion":"spring onion", "bell pepper":"red pepper", "red bell pepper":"red pepper", "green bell pepper":"green pepper", "yellow bell pepper":"yellow pepper", "white onion":"onion", corn:"corn on the cob", "sweet corn":"corn on the cob", yam:"sweet potato", eggplant:"aubergine", "cassava root":"cassava", "lemon juice":"lemon", "lime juice":"lime", "fresh cilantro":"cilantro", "fresh parsley":"parsley", "fresh basil":"basil" };
-function bestMeal(q, list){
+const NATURAL = new Set((process.env.MEALDB_OK || "").toLowerCase().split(",").map(x => words(x).join(" ")).filter(Boolean));
+function bestMeal(q, list, any){
   let key = words(q).join(" "); key = words(SYN[key] || key).join(" ");
-  if(!key || PACKAGED.test(key)) return null;
+  if(!key || (PACKAGED.test(key) && !NATURAL.has(key) && !any)) return null;
   return list.find(n => words(n).join(" ") === key) || null;      // solo si coincide exacto (ej. "garlic", "red onion")
 }
-async function mealdb(q, diag){
-  const name = bestMeal(q, await mealNames());
+async function mealdb(q, diag, any){
+  const name = bestMeal(q, await mealNames(), any);
   if(!name) return null;
   for(const u of ["https://www.themealdb.com/images/ingredients/" + encodeURIComponent(name) + "-medium.png",
                   "https://www.themealdb.com/images/ingredients/" + encodeURIComponent(name) + ".png"]){
@@ -117,8 +118,9 @@ module.exports = async function handler(req, res){
   try{
     const style = STYLES[t] || STYLES.plato;
     let img = null;
-    if(t === "cut" && process.env.MEALDB !== "0") img = await mealdb(q, diag).catch(e => { diag.push("mealdb " + (e?.name || "error")); return null; });
-    if(!img) img = await pollinations(q, seed, deadline, style, t, diag);
+    if(t === "cut" && process.env.MEALDB !== "0") img = await mealdb(q, diag, !!(info && req.query?.any)).catch(e => { diag.push("mealdb " + (e?.name || "error")); return null; });
+    // Sin clave, el modelo gratis no respeta "ingrediente solo sobre fondo blanco" (arma un plato): para ingredientes no se usa
+    if(!img && (t !== "cut" || process.env.POLLINATIONS_API_KEY)) img = await pollinations(q, seed, deadline, style, t, diag);
     if(!img && process.env.PEXELS_API_KEY && !t) img = await pexels(q, process.env.PEXELS_API_KEY);
     if(!img){
       res.setHeader("Cache-Control", "no-store");
