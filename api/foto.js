@@ -138,11 +138,13 @@ async function stock(q, es, diag){
     .then(async r => r.ok ? { mime: (r.headers.get("content-type") || "image/jpeg").split(";")[0], data: Buffer.from(await r.arrayBuffer()).toString("base64") } : null).catch(() => null)));
   const ok = cands.map((c, k) => ({ ...c, img: imgs[k] })).filter(c => c.img && /^image\/(jpeg|png|webp)/.test(c.img.mime) && c.img.data.length > 2000);
   if(!ok.length) return null;
-  const parts = [{ text:`Ingrediente de cocina: "${q}"${es ? ` (en español: "${es}")` : ""}. Te mando ${ok.length} fotos numeradas desde 0. Elige la que mejor muestre ESE ingrediente tal como se usa al cocinar (crudo o como se compra), solo o casi solo, reconocible y nítido; mejor si el fondo es liso y claro. Descarta paquetes o etiquetas con marca, platos ya cocinados, dibujos, personas, animales vivos o fotos donde el ingrediente casi no se ve. Responde SOLO JSON: {"i": número de la foto elegida o -1 si ninguna sirve, "box": [ymin, xmin, ymax, xmax] del ingrediente en esa foto en escala 0-1000 (si hay varias piezas, que las abarque todas), "liso": true si el fondo alrededor del ingrediente es liso y claro}` }];
+  const parts = [{ text:`Ingrediente de cocina: "${q}"${es ? ` (en español: "${es}")` : ""}. Te mando ${ok.length} fotos numeradas desde 0. Elige la que mejor muestre ESE ingrediente tal como se usa al cocinar (crudo o como se compra), reconocible y nítido; mejor si el fondo es liso y claro.
+Reglas: la foto debe mostrar SOLO ese ingrediente (descarta fotos con varios ingredientes distintos). Para líquidos o lácteos (leche, crema, aceite, caldo, salsas, vino) tiene que verse el líquido mismo en un vaso, jarra, bol o cuchara: descarta latas, cajas y botellas o paquetes con etiqueta o marca. Descarta platos ya cocinados, dibujos, personas, animales vivos y fotos donde el ingrediente casi no se ve.
+Responde SOLO JSON: {"i": número de la foto elegida o -1 si ninguna sirve, "nota": del 1 al 10 qué tan bien esa foto muestra el ingrediente solo, "box": [ymin, xmin, ymax, xmax] del ingrediente en esa foto en escala 0-1000 (si hay varias piezas del mismo ingrediente, que las abarque todas), "liso": true si el fondo alrededor del ingrediente es liso y claro}` }];
   ok.forEach((c, k) => { parts.push({ text:"Foto " + k + ":" }); parts.push({ inlineData:{ mimeType:c.img.mime, data:c.img.data } }); });
   const pick = await gemJSON(GEM_TEXT(), parts, diag, { thinkingConfig:{ thinkingLevel:"low" } });
-  const ch = pick && Number.isInteger(pick.i) && pick.i >= 0 ? ok[pick.i] : null;
-  diag.push("elegida " + (ch ? ch.title : "ninguna"));
+  const ch = pick && Number.isInteger(pick.i) && pick.i >= 0 && (pick.nota == null || +pick.nota >= 6) ? ok[pick.i] : null;
+  diag.push("elegida " + (ch ? ch.title + " (" + pick.nota + "/10)" : "ninguna" + (pick?.i >= 0 ? " (nota " + pick.nota + ")" : "")));
   if(!ch) return null;
   const r = await fetch(thumbAt(ch, 500), { headers:UA, signal: AbortSignal.timeout(9000) }).catch(() => null);
   const type = r?.headers?.get("content-type") || "";
