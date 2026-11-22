@@ -1,32 +1,77 @@
-// Foto realista generada por IA. GET /api/foto?q=<descripción>&s=<semilla>&t=<tipo>
-// Se piden en tamaño moderado para que salgan rápido (el servicio gratis no da más resolución de todas formas).
-// 1) Genera una foto tipo estudio con Pollinations (gratis, sin clave).
-// 2) Si falla y existe PEXELS_API_KEY (gratis en pexels.com/api), busca una foto real parecida.
-// La respuesta se guarda en la CDN de Vercel, así el mismo plato no se vuelve a generar.
+// Foto realista. GET /api/foto?q=<descripción>&s=<semilla>&t=<tipo>
+// t=plato (por defecto): el plato servido · t=paso: la olla/sartén en ese paso · t=mise: todos los ingredientes listos
+// t=ing: un ingrediente en un bol · t=cut: un ingrediente solo, sobre fondo blanco (la app lo recorta) · t=fill: el contenido de la olla visto desde arriba
+// Fuentes: 1) t=cut: foto recortada de TheMealDB si el ingrediente es común (sale al instante)
+//          2) Pollinations (gratis, sin clave; limita ~1 imagen cada 15 s)
+//          3) Pexels (solo platos, si existe PEXELS_API_KEY)
+// La respuesta se guarda en la CDN de Vercel, así la misma foto no se vuelve a generar.
+// Diagnóstico: &info=1 (tamaño y fuente) · &info=b64 (además la imagen en base64)
 
-// t=plato (por defecto): el plato servido · t=paso: cómo se ve la olla/sartén/bol en ese paso · t=mise: todos los ingredientes listos
 const BASE = "soft natural window light, photorealistic, ultra detailed, sharp focus, no text, no watermark, no people, no hands";
 const STYLES = {
   plato: "professional food photography, served on a matte ceramic plate on a rustic wooden table, 45 degree angle, shallow depth of field, appetizing, editorial magazine style, " + BASE,
   paso: "realistic home cooking photo taken from above while cooking, inside the cookware on a home kitchen stove or counter, natural colors and textures, steam if hot, " + BASE,
   mise: "all the ingredients for the recipe measured and laid out in small white ceramic bowls, mise en place, top-down view on a light wooden kitchen counter, neat arrangement, " + BASE,
-  ing: "raw ingredient measured in a small white ceramic prep bowl, mise en place, top-down view on a light wooden kitchen counter, clean, " + BASE
+  ing: "raw ingredient measured in a small white ceramic prep bowl, mise en place, top-down view on a light wooden kitchen counter, clean, " + BASE,
+  cut: "studio product photo of the raw ingredient alone, isolated on a pure white seamless background, centered, whole subject fully visible with empty white margin around it, three-quarter top view, even soft light, no shadow, no table, no plate (liquids, sauces and powders in a small clear glass bowl), photorealistic, ultra detailed, sharp focus, no text, no watermark, no hands",
+  fill: "overhead close-up photo looking straight down at the food while it cooks, the food completely fills the frame from edge to edge, no pot rim, no plate, no utensils, rich realistic texture and natural colors, glossy where wet, " + BASE
 };
+const SIZE = { paso:[768,576], ing:[512,512], cut:[512,512], fill:[640,640] };
 
-const SIZE = { paso:[768,576], ing:[512,512] };
-async function pollinations(q, seed, deadline, style, t){
+// TheMealDB: fotos reales de ingredientes con fondo transparente (lista de ~600 ingredientes comunes)
+let mealList = null, mealAt = 0;
+async function mealNames(){
+  if(mealList && Date.now() - mealAt < 6 * 3600e3) return mealList;
+  const r = await fetch("https://www.themealdb.com/api/json/v1/1/list.php?i=list", { signal: AbortSignal.timeout(6000) }).catch(() => null);
+  const d = r?.ok ? await r.json().catch(() => null) : null;
+  const names = (d?.meals || []).map(m => String(m.strIngredient || "").trim()).filter(Boolean);
+  if(names.length){ mealList = names; mealAt = Date.now(); }
+  return mealList || [];
+}
+const words = s => String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z ]/g, " ").split(/\s+/).filter(Boolean)
+  .map(w => w.length > 3 ? w.replace(/(oes|ies)$/, m => m === "ies" ? "y" : "o").replace(/s$/, "") : w);
+function bestMeal(q, list){
+  const qw = words(q); if(!qw.length) return null;
+  const key = qw.join(" ");
+  let best = null, score = 0;
+  for(const n of list){
+    const nw = words(n); if(!nw.length) continue;
+    if(nw.join(" ") === key) return n;                                  // igual
+    if(!nw.every(w => qw.includes(w))) continue;                        // todas sus palabras están en lo pedido
+    const s = nw.length * 10 - (qw.length - nw.length) - (nw.includes(qw[qw.length-1]) ? 0 : 5);
+    if(s > score){ score = s; best = n; }
+  }
+  return score >= 5 ? best : null;
+}
+async function mealdb(q){
+  const name = bestMeal(q, await mealNames());
+  if(!name) return null;
+  for(const u of ["https://www.themealdb.com/images/ingredients/" + encodeURIComponent(name) + "-medium.png",
+                  "https://www.themealdb.com/images/ingredients/" + encodeURIComponent(name) + ".png"]){
+    const r = await fetch(u, { signal: AbortSignal.timeout(8000) }).catch(() => null);
+    if(r?.ok && /^image\//.test(r.headers.get("content-type") || "")){
+      const buf = Buffer.from(await r.arrayBuffer());
+      if(buf.length > 2000) return { buf, type: r.headers.get("content-type"), url: u, src: "mealdb:" + name, cut: true };
+    }
+  }
+  return null;
+}
+
+async function pollinations(q, seed, deadline, style, t, diag){
   const [w, h] = SIZE[t] || [1024, 768];
   const prompt = encodeURIComponent((q + ", " + style).slice(0, 700));
   const url = "https://image.pollinations.ai/prompt/" + prompt + "?width=" + w + "&height=" + h + "&nologo=true&private=true&enhance=false&model=flux&seed=" + seed;
-  for(let i = 0; i < 2; i++){
+  for(let i = 0; i < 3; i++){
     const left = deadline - Date.now(); if(left < 8000) return null;
-    const r = await fetch(url, { signal: AbortSignal.timeout(left - 2000) }).catch(() => null);
-    if(r?.ok && /^image\//.test(r.headers.get("content-type") || "")){
+    const r = await fetch(url, { signal: AbortSignal.timeout(left - 2000) }).catch(e => ({ status: "err:" + (e?.name || "") }));
+    const type = r.headers?.get("content-type") || "";
+    diag.push("pollinations " + r.status + " " + type.slice(0, 20));
+    if(r.ok && /^image\//.test(type)){
       const buf = Buffer.from(await r.arrayBuffer());
-      if(buf.length > 8000) return { buf, type: r.headers.get("content-type"), url };
+      if(buf.length > 8000) return { buf, type, url, src: "pollinations" };
     }
-    if(r?.status !== 429 && r?.status !== 502 && r?.status !== 503) return null;
-    await new Promise(res => setTimeout(res, 16000));   // límite gratis: 1 imagen cada ~15 s
+    if(![429, 500, 502, 503, 504].includes(r.status) && !String(r.status).startsWith("err")) return null;
+    await new Promise(res => setTimeout(res, i ? 16000 : 9000));   // límite gratis: ~1 imagen cada 15 s
   }
   return null;
 }
@@ -50,29 +95,38 @@ async function pexels(q, key){
   if(!src) return null;
   const img = await fetch(src, { signal: AbortSignal.timeout(10000) }).catch(() => null);
   if(!img?.ok) return null;
-  return { buf: Buffer.from(await img.arrayBuffer()), type: img.headers.get("content-type") || "image/jpeg", url: src };
+  return { buf: Buffer.from(await img.arrayBuffer()), type: img.headers.get("content-type") || "image/jpeg", url: src, src: "pexels" };
 }
 
 module.exports = async function handler(req, res){
   const deadline = Date.now() + 55000;
   const q = String(req.query?.q || "").replace(/\s+/g, " ").trim().slice(0, 300);
   const seed = Math.abs(parseInt(req.query?.s, 10) || 7) % 1000000;
-  if(req.method !== "GET" || q.length < 3) return res.status(400).end();
+  const t = String(req.query?.t || "");
+  if(req.method !== "GET" || q.length < 2) return res.status(400).end();
+  const diag = [];
   try{
-    const style = STYLES[req.query?.t] || STYLES.plato;
-    let img = await pollinations(q, seed, deadline, style, req.query?.t);
-    if(!img && process.env.PEXELS_API_KEY && !req.query?.t) img = await pexels(q, process.env.PEXELS_API_KEY);
-    if(!img){ res.setHeader("Cache-Control", "no-store"); return res.status(404).end(); }
-    if(req.query?.info) return res.status(200).json({ bytes: img.buf.length, ...dims(img.buf) });
+    const style = STYLES[t] || STYLES.plato;
+    let img = null;
+    if(t === "cut" && process.env.MEALDB !== "0") img = await mealdb(q).catch(e => { diag.push("mealdb " + (e?.name || "error")); return null; });
+    if(!img) img = await pollinations(q, seed, deadline, style, t, diag);
+    if(!img && process.env.PEXELS_API_KEY && !t) img = await pexels(q, process.env.PEXELS_API_KEY);
+    const info = req.query?.info;
+    if(!img){
+      res.setHeader("Cache-Control", "no-store");
+      return info ? res.status(404).json({ error:"no_image", diag }) : res.status(404).end();
+    }
+    if(info) return res.status(200).json({ src: img.src, type: img.type, bytes: img.buf.length, ...dims(img.buf), diag, ...(info === "b64" ? { b64: img.buf.toString("base64") } : {}) });
     if(img.buf.length > 4.3 * 1024 * 1024 && img.url){            // Vercel no envía respuestas de más de 4.5 MB: se redirige a la imagen
       res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=31536000");
       return res.redirect(302, img.url);
     }
     res.setHeader("Content-Type", img.type);
+    res.setHeader("X-Foto-Fuente", img.src);
     res.setHeader("Cache-Control", "public, max-age=31536000, s-maxage=31536000, immutable");
     return res.status(200).send(img.buf);
-  }catch{
+  }catch(e){
     res.setHeader("Cache-Control", "no-store");
-    return res.status(502).end();
+    return req.query?.info ? res.status(502).json({ error: String(e?.message || e), diag }) : res.status(502).end();
   }
 };
