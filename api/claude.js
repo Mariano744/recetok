@@ -1,9 +1,9 @@
 // Puente entre la app y la API de Claude. La clave vive solo aquí, en el servidor.
 // Variables de entorno en Vercel:
-//   GEMINI_API_KEY     clave gratis de https://aistudio.google.com/apikey (recomendada)
+//   ANTHROPIC_API_KEY  clave de https://console.anthropic.com: si existe, TODA la IA de la app usa Claude (Sonnet 5.5 y Haiku 5.5)
+//   GEMINI_API_KEY     opcional: solo para ver videos (Claude no los ve) o como respaldo si no hay clave de Claude
 //   SUPADATA_API_KEY   opcional (plan gratis en supadata.ai): transcripción cuando el video no se puede ver
 //   GEMINI_MODEL       opcional; opcional (se prueba gemini-3.8-flash por defecto)
-//   ANTHROPIC_API_KEY  opcional; solo si no hay clave de Gemini
 //   APP_CODE           código de acceso que la app pide una vez (obligatorio)
 
 const MODELS = { quick: "claude-haiku-5-5", default: "claude-sonnet-5-5", complex: "claude-sonnet-5-5" };
@@ -85,7 +85,9 @@ async function run(req, res, deadline){
   const images = (Array.isArray(body.images) ? body.images : []).slice(0, MAX_IMAGES)
     .filter(im => im && /^image\/(jpeg|png|webp|gif)$/.test(im.media_type) && typeof im.data === "string" && im.data.length <= MAX_IMAGE_B64);
 
-  if(process.env.GEMINI_API_KEY){
+  // Claude es el modelo por defecto. Gemini solo se usa si no hay clave de Claude, o para ver el video de un link (Claude no ve videos)
+  const useClaude = !!process.env.ANTHROPIC_API_KEY && !(body.videoUrl && process.env.GEMINI_API_KEY);
+  if(process.env.GEMINI_API_KEY && !useClaude){
     let videoPart = null, videoTitle = "", extraText = "", fallback = "";
     if(typeof body.videoUrl === "string" && body.videoUrl){
       let host = "";
@@ -184,22 +186,27 @@ async function run(req, res, deadline){
     (body.json ? " Tu respuesta será leída por un programa: responde SOLO con el JSON pedido, sin texto antes ni después y sin bloques de código." : "");
 
   try{
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
-      method:"POST",
+    const call = () => fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST", signal: AbortSignal.timeout(Math.max(10000, deadline - Date.now())),
       headers:{ "content-type":"application/json", "x-api-key":process.env.ANTHROPIC_API_KEY, "anthropic-version":"2023-06-01" },
-      body: JSON.stringify({ model: MODELS[body.tier] || MODELS.default, max_tokens: body.tier === "quick" ? 1500 : 8000, system, messages: msgs }),
+      body: JSON.stringify({ model: process.env.CLAUDE_MODEL && body.tier !== "quick" ? process.env.CLAUDE_MODEL : MODELS[body.tier] || MODELS.default, max_tokens: body.tier === "quick" ? 3000 : 8000, system, messages: msgs }),
     });
-    const d = await r.json().catch(() => ({}));
+    res.stage = "analizar con Claude";
+    let r = await call(), d = await r.json().catch(() => ({}));
+    if([429, 500, 502, 503, 529].includes(r.status) && deadline - Date.now() > 30000){   // saturado: una segunda oportunidad
+      await new Promise(x => setTimeout(x, 3000)); r = await call(); d = await r.json().catch(() => ({}));
+    }
     if(!r.ok){
-      const map = { 400:"invalid_request", 401:"not_configured", 403:"not_configured", 413:"prompt_too_large", 429:"rate_limited" };
+      const map = { 400:"invalid_request", 401:"not_configured", 403:"not_configured", 413:"prompt_too_large", 429:"rate_limited", 529:"busy" };
       const code = map[r.status] || "upstream_error";
-      const msg = r.status === 401 || r.status === 403 ? "La clave de Anthropic no es válida." : (d?.error?.message || "Error del servicio de IA.");
-      return res.status(r.status === 401 || r.status === 403 ? 503 : r.status).json({ code, message: msg });
+      const msg = r.status === 401 || r.status === 403 ? "La clave de Anthropic no es válida." : r.status === 529 ? "Claude está muy ocupado." : r.status === 400 && /credit|balance/i.test(d?.error?.message || "") ? "Se acabó el saldo de tu cuenta de Anthropic." : (d?.error?.message || "Error del servicio de IA.");
+      return res.status(r.status === 401 || r.status === 403 ? 503 : r.status === 529 ? 503 : r.status).json({ code, message: msg });
     }
     const text = (d.content || []).filter(c => c.type === "text").map(c => c.text).join("");
     if(!text.trim()) return res.status(502).json({ code:"empty_completion", message:"La IA no respondió." });
     return res.status(200).json({ text, truncated: d.stop_reason === "max_tokens" });
   }catch(e){
+    if(e?.name === "TimeoutError" || e?.name === "AbortError") return res.status(504).json({ code:"timeout", message: where() });
     return res.status(502).json({ code:"upstream_error", message:"No se pudo contactar a la IA." });
   }
 }
