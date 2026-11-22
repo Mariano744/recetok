@@ -107,13 +107,13 @@ async function commons(q, diag){
     .filter(x => x.thumb && /jpeg|png/.test(x.mime || "") && /^(public domain|cc0|pd|cc by)/i.test(x.lic) && !/nc|nd/i.test(x.lic));
 }
 // Para elegir fotos se usan modelos distintos a los que analizan las recetas (3.8 y 3.6), así no se gasta su cuota
-const GEM_PICK = () => [...new Set([process.env.GEMINI_PICK_MODEL, "gemini-3.7-flash", "gemini-3.5-flash", "gemini-3-flash-preview", "gemini-3.5-flash-lite", "gemini-3.6-flash"].filter(Boolean))];
+const GEM_PICK = () => [...new Set([process.env.GEMINI_PICK_MODEL, "gemini-3.5-flash", "gemini-3-flash-preview", "gemini-3.5-flash-lite", "gemini-3.6-flash"].filter(Boolean))];
 async function gemJSON(models, parts, diag, extra = {}, deadline = Date.now() + 40000){
   const key = process.env.GEMINI_API_KEY; if(!key) return null;
   for(const m of models){
     const left = deadline - Date.now(); if(left < 6000) break;
     const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(m) + ":generateContent", { method:"POST",
-      headers:{ "content-type":"application/json", "x-goog-api-key":key }, signal: AbortSignal.timeout(Math.min(14000, left - 3000)),
+      headers:{ "content-type":"application/json", "x-goog-api-key":key }, signal: AbortSignal.timeout(Math.min(13000, left - 3000)),
       body: JSON.stringify({ contents:[{ role:"user", parts }], generationConfig:{ responseMimeType:"application/json", ...extra } }) }).catch(e => ({ ok:false, status:"err:" + e?.name }));
     const d = r.json ? await r.json().catch(() => ({})) : {};
     const txt = (d?.candidates?.[0]?.content?.parts || []).filter(x => x.text).map(x => x.text).join("");
