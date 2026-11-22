@@ -1,4 +1,4 @@
-const VERSION = "recetok-v19";
+const VERSION = "recetok-v20";
 const FOTOS = "recetok-fotos-4k";
 const SHELL = ["/", "/index.html", "/standalone.js", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/apple-touch-icon.png", "/icons/favicon.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });

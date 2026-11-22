@@ -4,7 +4,31 @@
   const getCode = () => { try{ return localStorage.getItem(CODE_KEY) || ""; }catch{ return ""; } };
   const setCode = v => { try{ v ? localStorage.setItem(CODE_KEY, v) : localStorage.removeItem(CODE_KEY); }catch{} };
 
-  /* --- ventana para el código de acceso --- */
+  /* --- clave de Claude: se pega una vez en la app, se guarda solo en este dispositivo y las consultas van directo a Claude --- */
+  const KEY_KEY = "recetok_claude_key";
+  const getKey = () => { try{ return (localStorage.getItem(KEY_KEY) || "").trim(); }catch{ return ""; } };
+  const setKey = v => { try{ v ? localStorage.setItem(KEY_KEY, v.trim()) : localStorage.removeItem(KEY_KEY); }catch{} };
+  function askKey(wrong){
+    return new Promise(resolve => {
+      const box = document.createElement("div");
+      box.className = "modal"; box.setAttribute("role","dialog"); box.setAttribute("aria-modal","true");
+      const cur = getKey();
+      box.innerHTML = `<form class="modal-in codebox">
+        <div class="modal-head"><h3>Tu clave de Claude</h3></div>
+        <p class="muted">${wrong ? "<b style='color:var(--bad)'>Esa clave no funcionó.</b> " : ""}Pega tu clave de API de Anthropic (empieza con <b>sk-ant-</b>). Se guarda solo en este dispositivo y las consultas van directo a Claude. Créala en <b>console.anthropic.com</b> → <i>API Keys</i>.</p>
+        <input type="password" autocomplete="off" placeholder="sk-ant-…" aria-label="Clave de Claude" value="${cur ? "•".repeat(12) : ""}" style="font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)">
+        <div class="row">${cur ? `<button type="button" class="btn" data-del>Quitar clave</button>` : ""}<button type="button" class="btn" data-x>Cancelar</button><button class="btn primary">Guardar</button></div>
+      </form>`;
+      document.body.appendChild(box);
+      const inp = box.querySelector("input"); inp.focus(); inp.select();
+      const done = v => { box.remove(); resolve(v); };
+      box.querySelector("[data-x]").onclick = () => done("");
+      const del = box.querySelector("[data-del]"); if(del) del.onclick = () => { setKey(""); done(""); };
+      box.querySelector("form").onsubmit = e => { e.preventDefault(); const v = inp.value.trim(); if(/^•+$/.test(v)) return done(cur); if(v.length > 20){ setKey(v); done(v); } };
+    });
+  }
+
+  /* --- ventana para el código de acceso (solo si usas el servidor de Vercel) --- */
   function askCode(wrong){
     return new Promise(resolve => {
       const box = document.createElement("div");
@@ -46,13 +70,49 @@
     throw { code:"invalid_json", message:"Respuesta incompleta.", text:t };
   }
 
+  const MODELS = { quick:"claude-haiku-5-5", default:"claude-sonnet-5-5", complex:"claude-sonnet-5-5" };
+  const SYSTEM = "Eres el asistente de cocina y nutrición de la app Recetok. Respondes en español.";
+  async function direct(messages, imgs, opts, json, key, retried){
+    const msgs = messages.map((m, i) => {
+      const content = [{ type:"text", text:String(m.content || "") }];
+      if(i === messages.length - 1 && imgs.length) content.unshift(...imgs.map(im => ({ type:"image", source:{ type:"base64", media_type:im.media_type, data:im.data } })));
+      return { role: m.role === "assistant" ? "assistant" : "user", content };
+    });
+    const tier = opts.modelTier || "default";
+    let r;
+    try{
+      r = await fetch("https://api.anthropic.com/v1/messages", { method:"POST", signal:opts.signal,
+        headers:{ "content-type":"application/json", "x-api-key":key, "anthropic-version":"2023-06-01", "anthropic-dangerous-direct-browser-access":"true" },
+        body: JSON.stringify({ model: MODELS[tier] || MODELS.default, max_tokens: tier === "quick" ? 3000 : 8000,
+          system: SYSTEM + (json ? " Tu respuesta será leída por un programa: responde SOLO con el JSON pedido, sin texto antes ni después y sin bloques de código." : ""), messages: msgs }) });
+    }catch(e){
+      if(opts.signal?.aborted) throw { code:"cancelled" };
+      throw { code: navigator.onLine === false ? "offline" : "upstream_error", message:"Sin conexión." };
+    }
+    const d = await r.json().catch(() => ({}));
+    if(r.status === 401 || r.status === 403){ setKey(""); const k = await askKey(true); if(!k || retried) throw { code:"not_granted", message:"" }; return direct(messages, imgs, opts, json, k, true); }
+    if(!r.ok){
+      const credit = r.status === 400 && /credit|balance/i.test(d?.error?.message || "");
+      throw { code: r.status === 429 ? "rate_limited" : r.status === 529 ? "busy" : r.status === 413 ? "prompt_too_large" : "upstream_error",
+        message: credit ? "Se acabó el saldo de tu cuenta de Anthropic." : (d?.error?.message || "") };
+    }
+    const text = (d.content || []).filter(c => c.type === "text").map(c => c.text).join("");
+    if(!text.trim()) throw { code:"empty_completion", message:"La IA no respondió." };
+    try{ opts.onText?.({ text, delta:text }); }catch{}
+    try{ opts.onMeta?.({ fallback:"" }); }catch{}
+    return json ? parseJSON(text) : { text, truncated: d.stop_reason === "max_tokens", modelTierApplied:tier };
+  }
+
   async function call(input, opts = {}, json = false, retried = false){
     if(opts.signal?.aborted) throw { code:"cancelled" };
     const messages = typeof input === "string" ? [{ role:"user", content:input }] : input;
     let imgs = [];
     if(opts.images){ const arr = opts.images instanceof Blob ? [opts.images] : [...opts.images]; imgs = await Promise.all(arr.slice(0,3).map(toB64)); }
-    let code = getCode();
-    if(!code){ code = await askCode(retried); if(!code) throw { code:"not_granted", message:"" }; }
+    let key = getKey(), code = getCode();
+    if(key || !code){                                   // lo normal: tu clave de Claude, directo (como el servidor de Vercel ya no hace falta)
+      if(!key){ key = await askKey(false); if(!key) throw { code:"not_granted", message:"" }; }
+      return direct(messages, imgs, opts, json, key, false);
+    }
     let r;
     try{
       r = await fetch("/api/claude", { method:"POST", signal:opts.signal,
@@ -88,7 +148,8 @@
   };
 
   window.claude = { use: async name => name === "sample" ? sample : name === "downloads" ? downloads : null };
-  window.RECETOK_APP = true;
+  Object.defineProperty(window, "RECETOK_APP", { get: () => !getKey() && !!getCode() });   // el servidor puede ver videos; Claude directo no
+  window.RECETOK_KEY = { change: () => askKey(false) };
 
   /* --- instalar y trabajar sin conexión --- */
   if("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(()=>{}));
