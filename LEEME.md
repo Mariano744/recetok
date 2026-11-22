@@ -34,4 +34,5 @@ Ya existe el proyecto **recetok** en tu equipo de Vercel ("Mariano's team"), con
 
 - Tus recetas se guardan en cada dispositivo. Para pasarlas a otro, usa **Recetario → Exportar copia** e **Importar** en el otro.
 - El código de acceso evita que otras personas gasten tu saldo si encuentran el link. No lo compartas con quien no quieras.
+- Modo cocina: es un juego (estufa, ollas, ingredientes que se arrastran, minijuegos, estrellas y nivel de cocinero) que acompaña la receta real paso a paso. Las fotos recortadas de verduras, frutas y especias comunes vienen de TheMealDB (gratis); el resto, de Pollinations si configuras `POLLINATIONS_API_KEY`, y si no, se dibujan trozos con el color del alimento.
 - Archivos: `index.html` (la app), `standalone.js` (conexión con la IA e instalación), `sw.js` (modo sin conexión), `manifest.webmanifest` e `icons/` (ícono y nombre de la app), `api/claude.js` (servidor que guarda tu clave).
