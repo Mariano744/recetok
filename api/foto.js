@@ -86,6 +86,58 @@ async function pollinations(q, seed, deadline, style, t, diag){
   return null;
 }
 
+/* ---------- Fotos reales de dominio público (Openverse y Wikimedia Commons) ---------- */
+const UA = { "User-Agent": "RecetokApp/1.0 (personal cooking app)" };
+async function openverse(q, diag){
+  const r = await fetch("https://api.openverse.org/v1/images/?page_size=12&mature=false&license=cc0,pdm&q=" + encodeURIComponent(q), { headers:UA, signal: AbortSignal.timeout(8000) }).catch(e => ({ ok:false, status:"err:" + e?.name }));
+  const d = r.ok ? await r.json().catch(() => ({})) : {};
+  diag.push("openverse " + r.status + " " + (d.result_count ?? ""));
+  return (d.results || []).filter(x => /jpe?g|png|webp/i.test(x.filetype || x.url || "")).map(x => ({ src:"openverse", title:x.title || "", thumb:x.thumbnail, url:x.url, lic:x.license, by:x.creator || "", w:x.width, h:x.height, from:x.source }));
+}
+async function commons(q, diag){
+  const u = "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrnamespace=6&gsrlimit=12&prop=imageinfo&iiprop=url|mime|extmetadata&iiurlwidth=560&gsrsearch=" + encodeURIComponent(q + " filetype:bitmap");
+  const r = await fetch(u, { headers:UA, signal: AbortSignal.timeout(8000) }).catch(e => ({ ok:false, status:"err:" + e?.name }));
+  const d = r.ok ? await r.json().catch(() => ({})) : {};
+  const pages = Object.values(d?.query?.pages || {}).sort((a, b) => (a.index || 0) - (b.index || 0));
+  diag.push("commons " + r.status + " " + pages.length);
+  return pages.map(p => { const ii = p.imageinfo?.[0] || {}, m = ii.extmetadata || {};
+    return { src:"commons", title:p.title, thumb:ii.thumburl, url:ii.descriptionurl, lic:String(m.LicenseShortName?.value || ""), by:String(m.Artist?.value || "").replace(/<[^>]+>/g, "").slice(0, 80), mime:ii.mime }; })
+    .filter(x => x.thumb && /jpeg|png/.test(x.mime || "") && /public domain|cc0|pd/i.test(x.lic));
+}
+const GEM_TEXT = () => [...new Set([process.env.GEMINI_MODEL, "gemini-3.8-flash", "gemini-3.6-flash", "gemini-3-flash-preview"].filter(Boolean))];
+async function gemJSON(models, parts, diag, extra = {}){
+  const key = process.env.GEMINI_API_KEY; if(!key) return null;
+  for(const m of models){
+    const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(m) + ":generateContent", { method:"POST",
+      headers:{ "content-type":"application/json", "x-goog-api-key":key }, signal: AbortSignal.timeout(25000),
+      body: JSON.stringify({ contents:[{ role:"user", parts }], generationConfig:{ responseMimeType:"application/json", ...extra } }) }).catch(e => ({ ok:false, status:"err:" + e?.name }));
+    const d = r.json ? await r.json().catch(() => ({})) : {};
+    const txt = (d?.candidates?.[0]?.content?.parts || []).filter(x => x.text).map(x => x.text).join("");
+    diag.push("gemini " + m + " " + r.status + (r.ok ? "" : " " + String(d?.error?.message || "").slice(0, 120)));
+    if(r.ok && txt){ try{ return JSON.parse(txt.replace(/^```(?:json)?|```$/g, "").trim()); }catch{ diag.push("json? " + txt.slice(0, 200)); } }
+    if(r.status === 400 || r.status === 403) continue;
+  }
+  return null;
+}
+async function stockDiag(q){
+  const diag = [], t0 = Date.now();
+  const [a, b] = await Promise.all([openverse(q, diag).catch(() => []), commons(q, diag).catch(() => [])]);
+  const cands = [...a.slice(0, 4), ...b.slice(0, 4)];
+  const imgs = await Promise.all(cands.map(c => fetch(c.thumb, { headers:UA, signal: AbortSignal.timeout(8000) }).then(async r => r.ok ? { mime: (r.headers.get("content-type") || "image/jpeg").split(";")[0], data: Buffer.from(await r.arrayBuffer()).toString("base64") } : null).catch(() => null)));
+  const ok = cands.map((c, k) => ({ ...c, img: imgs[k] })).filter(c => c.img && /^image\//.test(c.img.mime) && c.img.data.length > 2000);
+  const parts = [{ text:`Ingrediente: "${q}". Te mando ${ok.length} fotos numeradas desde 0. Elige la que mejor muestre ese ingrediente crudo o tal como se compra, solo (sin otros alimentos, sin plato preparado), reconocible y nítido; mejor si el fondo es liso y claro. Rechaza paquetes con marca, comida cocinada, dibujos, personas o fotos donde casi no se ve. Responde SOLO JSON: {"i": número de la foto elegida o -1 si ninguna sirve, "box": [ymin, xmin, ymax, xmax] del ingrediente en esa foto en escala 0-1000, "liso": true si el fondo alrededor es liso y claro}` }];
+  ok.forEach((c, k) => { parts.push({ text:"Foto " + k + ":" }); parts.push({ inlineData:{ mimeType:c.img.mime, data:c.img.data } }); });
+  const pick = ok.length ? await gemJSON(GEM_TEXT(), parts, diag, { thinkingConfig:{ thinkingLevel:"low" } }) : null;
+  const ch = pick && pick.i >= 0 ? ok[pick.i] : null;
+  let seg = null;
+  if(ch){
+    const sp = [{ text:`Give the segmentation mask for the main "${q}" in this photo. Output a JSON list where each entry has "box_2d", "mask" and "label".` }, { inlineData:{ mimeType:ch.img.mime, data:ch.img.data } }];
+    const sd = await gemJSON(["gemini-2.5-flash"], sp, diag, { thinkingConfig:{ thinkingBudget:0 } });
+    seg = Array.isArray(sd) ? sd.map(x => ({ label:x.label, box:x.box_2d, mask: String(x.mask || "").slice(0, 40), maskLen: String(x.mask || "").length })) : sd;
+  }
+  return { ms: Date.now() - t0, diag, cands: cands.map(c => ({ src:c.src, title:c.title, lic:c.lic, from:c.from, thumb:c.thumb })), pick, chosen: ch && { title: ch.title, thumb: ch.thumb, lic: ch.lic, by: ch.by }, seg };
+}
+
 // Ancho y alto reales de un JPEG/PNG (para comprobar la resolución)
 function dims(b){
   if(b[0] === 0x89 && b[1] === 0x50) return { w:b.readUInt32BE(16), h:b.readUInt32BE(20) };
@@ -111,6 +163,7 @@ async function pexels(q, key){
 module.exports = async function handler(req, res){
   const deadline = Date.now() + 55000, info = req.query?.info;
   if(info === "list"){ res.setHeader("Cache-Control", "no-store"); return res.status(200).json({ names: await mealNames() }); }
+  if(info === "stock"){ res.setHeader("Cache-Control", "no-store"); return res.status(200).json(await stockDiag(String(req.query?.q || "").slice(0, 60))); }
   const q = String(req.query?.q || "").replace(/\s+/g, " ").trim().slice(0, 300);
   const seed = Math.abs(parseInt(req.query?.s, 10) || 7) % 1000000;
   const t = String(req.query?.t || "");
