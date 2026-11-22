@@ -180,6 +180,11 @@ async function pexels(q, key){
 module.exports = async function handler(req, res){
   const deadline = Date.now() + 55000, info = req.query?.info;
   if(info === "list"){ res.setHeader("Cache-Control", "no-store"); return res.status(200).json({ names: await mealNames() }); }
+  if(info === "models" && process.env.VERCEL_ENV === "preview"){
+    const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000", { headers:{ "x-goog-api-key": process.env.GEMINI_API_KEY || "" } }).catch(() => null);
+    const d = r?.ok ? await r.json().catch(() => ({})) : {};
+    return res.status(200).json({ models: (d.models || []).filter(m => (m.supportedGenerationMethods || []).includes("generateContent")).map(m => m.name.replace(/^models\//, "")) });
+  }
   const q = String(req.query?.q || "").replace(/\s+/g, " ").trim().slice(0, 300);
   const seed = Math.abs(parseInt(req.query?.s, 10) || 7) % 1000000;
   const t = String(req.query?.t || "");
