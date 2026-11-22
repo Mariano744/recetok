@@ -84,7 +84,7 @@ async function geminiModels(key, diag){
 }
 async function gemini(q, t, style, deadline, diag){
   const key = process.env.GEMINI_API_KEY; if(!key) return null;
-  const models = process.env.GEMINI_IMAGE_MODEL ? [process.env.GEMINI_IMAGE_MODEL] : (await geminiModels(key, diag)).slice(0, 3);
+  const models = process.env.GEMINI_IMAGE_MODEL ? [process.env.GEMINI_IMAGE_MODEL] : (await geminiModels(key, diag)).filter(m => !/pro/.test(m)).slice(0, 4);
   for(const m of models){
     const left = deadline - Date.now(); if(left < 12000) break;
     const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(m) + ":generateContent", { method:"POST",
@@ -95,7 +95,7 @@ async function gemini(q, t, style, deadline, diag){
     const part = (d?.candidates?.[0]?.content?.parts || []).find(x => x.inlineData?.data);
     diag.push("gemini " + m + " " + r.status + " " + (part ? part.inlineData.mimeType : String(d?.error?.message || d?.candidates?.[0]?.finishReason || "").slice(0, 220)));
     if(part) return { buf: Buffer.from(part.inlineData.data, "base64"), type: part.inlineData.mimeType || "image/png", src: "gemini:" + m };
-    if(r.status === 429 || r.status === 403) break;
+    if(r.status === 403) break;
   }
   return null;
 }
