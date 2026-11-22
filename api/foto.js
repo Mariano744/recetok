@@ -6,7 +6,8 @@
 //     (las carnes, lácteos y salsas ahí suelen ser paquetes con marca, por eso no se usan)
 //  2) Pollinations. Con POLLINATIONS_API_KEY (gratis en https://enter.pollinations.ai) usa el modelo flux: fotos realistas, rápidas y sin logo.
 //     Sin clave: modelo básico, con logo y 1 imagen cada 45 s por IP (en Vercel la IP es compartida).
-//  3) Pexels (solo platos, si existe PEXELS_API_KEY)
+//  3) t=cut: foto real de dominio público (Openverse / Wikimedia Commons) que Gemini elige y ubica; la app la recorta
+//  4) Pexels (solo platos, si existe PEXELS_API_KEY)
 // La respuesta se guarda en la CDN de Vercel, así la misma foto no se vuelve a generar.
 // Diagnóstico: &info=1 (tamaño y fuente) · &info=b64 (además la imagen) · &info=list (ingredientes de TheMealDB)
 
@@ -119,25 +120,33 @@ async function gemJSON(models, parts, diag, extra = {}){
   }
   return null;
 }
-let WANT_IMG = false;
-async function stockDiag(q){
-  const diag = [], t0 = Date.now();
+const hits = new Map();                                             // límite simple por IP para las búsquedas con IA
+function limited(ip){ const now = Date.now(), l = (hits.get(ip) || []).filter(t => now - t < 600000); l.push(now); hits.set(ip, l); return l.length > 60; }
+const thumbAt = (c, px) => c.src === "commons" ? c.thumb.replace(/\/\d+px-/, "/" + px + "px-") : c.thumb;
+// Busca fotos reales de dominio público y deja que Gemini elija la que muestra el ingrediente solo y dónde está
+async function stock(q, es, diag){
   const [a, b] = await Promise.all([openverse(q, diag).catch(() => []), commons(q, diag).catch(() => [])]);
-  const cands = [...a.slice(0, 4), ...b.slice(0, 4)];
-  const imgs = await Promise.all(cands.map(c => fetch(c.thumb, { headers:UA, signal: AbortSignal.timeout(8000) }).then(async r => r.ok ? { mime: (r.headers.get("content-type") || "image/jpeg").split(";")[0], data: Buffer.from(await r.arrayBuffer()).toString("base64") } : null).catch(() => null)));
-  const ok = cands.map((c, k) => ({ ...c, img: imgs[k] })).filter(c => c.img && /^image\//.test(c.img.mime) && c.img.data.length > 2000);
-  const parts = [{ text:`Ingrediente: "${q}". Te mando ${ok.length} fotos numeradas desde 0. Elige la que mejor muestre ese ingrediente crudo o tal como se compra, solo (sin otros alimentos, sin plato preparado), reconocible y nítido; mejor si el fondo es liso y claro. Rechaza paquetes con marca, comida cocinada, dibujos, personas o fotos donde casi no se ve. Responde SOLO JSON: {"i": número de la foto elegida o -1 si ninguna sirve, "box": [ymin, xmin, ymax, xmax] del ingrediente en esa foto en escala 0-1000, "liso": true si el fondo alrededor es liso y claro}` }];
+  let cands = [...a.slice(0, 3), ...b.slice(0, 4)];
+  if(cands.length < 4 && es) cands = cands.concat((await commons(es, diag).catch(() => [])).slice(0, 3));
+  const seen = new Set(); cands = cands.filter(c => { const k = c.title.toLowerCase().replace(/^file:|\.\w+$/g, "").trim(); if(seen.has(k)) return false; seen.add(k); return true; }).slice(0, 7);
+  if(!cands.length) return null;
+  const imgs = await Promise.all(cands.map(c => fetch(thumbAt(c, 330), { headers:UA, signal: AbortSignal.timeout(7000) })
+    .then(async r => r.ok ? { mime: (r.headers.get("content-type") || "image/jpeg").split(";")[0], data: Buffer.from(await r.arrayBuffer()).toString("base64") } : null).catch(() => null)));
+  const ok = cands.map((c, k) => ({ ...c, img: imgs[k] })).filter(c => c.img && /^image\/(jpeg|png|webp)/.test(c.img.mime) && c.img.data.length > 2000);
+  if(!ok.length) return null;
+  const parts = [{ text:`Ingrediente de cocina: "${q}"${es ? ` (en español: "${es}")` : ""}. Te mando ${ok.length} fotos numeradas desde 0. Elige la que mejor muestre ESE ingrediente tal como se usa al cocinar (crudo o como se compra), solo o casi solo, reconocible y nítido; mejor si el fondo es liso y claro. Descarta paquetes o etiquetas con marca, platos ya cocinados, dibujos, personas, animales vivos o fotos donde el ingrediente casi no se ve. Responde SOLO JSON: {"i": número de la foto elegida o -1 si ninguna sirve, "box": [ymin, xmin, ymax, xmax] del ingrediente en esa foto en escala 0-1000 (si hay varias piezas, que las abarque todas), "liso": true si el fondo alrededor del ingrediente es liso y claro}` }];
   ok.forEach((c, k) => { parts.push({ text:"Foto " + k + ":" }); parts.push({ inlineData:{ mimeType:c.img.mime, data:c.img.data } }); });
-  const pick = ok.length ? await gemJSON(GEM_TEXT(), parts, diag, { thinkingConfig:{ thinkingLevel:"low" } }) : null;
-  const ch = pick && pick.i >= 0 ? ok[pick.i] : null;
-  let seg = null;
-  if(ch){
-    const sp = [{ text:`Give the segmentation mask for the main "${q}" in this photo. Output a JSON list where each entry has "box_2d", "mask" and "label".` }, { inlineData:{ mimeType:ch.img.mime, data:ch.img.data } }];
-    const sd = await gemJSON(["gemini-3.6-flash"], sp, diag, { thinkingConfig:{ thinkingLevel:"minimal" } });
-    seg = Array.isArray(sd) ? sd.map(x => ({ label:x.label, box:x.box_2d, mask: String(x.mask || "").slice(0, 40), maskLen: String(x.mask || "").length })) : sd;
-  }
-  const big = ch && WANT_IMG ? await fetch(ch.thumb.replace(/\/\d+px-/, "/500px-"), { headers:UA, signal: AbortSignal.timeout(8000) }).then(async r => r.ok ? Buffer.from(await r.arrayBuffer()).toString("base64") : "").catch(() => "") : "";
-  return { ms: Date.now() - t0, b64: big, diag, cands: cands.map(c => ({ src:c.src, title:c.title, lic:c.lic, from:c.from, thumb:c.thumb })), pick, chosen: ch && { title: ch.title, thumb: ch.thumb, lic: ch.lic, by: ch.by }, seg };
+  const pick = await gemJSON(GEM_TEXT(), parts, diag, { thinkingConfig:{ thinkingLevel:"low" } });
+  const ch = pick && Number.isInteger(pick.i) && pick.i >= 0 ? ok[pick.i] : null;
+  diag.push("elegida " + (ch ? ch.title : "ninguna"));
+  if(!ch) return null;
+  const r = await fetch(thumbAt(ch, 500), { headers:UA, signal: AbortSignal.timeout(9000) }).catch(() => null);
+  const type = r?.headers?.get("content-type") || "";
+  const buf = r?.ok && /^image\//.test(type) ? Buffer.from(await r.arrayBuffer()) : null;
+  if(!buf || buf.length < 3000) return null;
+  const box = Array.isArray(pick.box) && pick.box.length === 4 && pick.box.every(v => Number.isFinite(+v)) ? pick.box.map(v => Math.max(0, Math.min(1000, Math.round(+v)))).join(",") : "";
+  return { buf, type, url: ch.url, src: "stock:" + ch.src, box, liso: pick.liso ? "1" : "0",
+    credit: [ch.title.replace(/^File:/, "").replace(/\.\w+$/, ""), ch.by, ch.lic, ch.src === "commons" ? "Wikimedia Commons" : "Openverse"].filter(Boolean).join(" · ").slice(0, 180) };
 }
 
 // Ancho y alto reales de un JPEG/PNG (para comprobar la resolución)
@@ -165,7 +174,6 @@ async function pexels(q, key){
 module.exports = async function handler(req, res){
   const deadline = Date.now() + 55000, info = req.query?.info;
   if(info === "list"){ res.setHeader("Cache-Control", "no-store"); return res.status(200).json({ names: await mealNames() }); }
-  if(info === "stock"){ WANT_IMG = !!req.query?.img; res.setHeader("Cache-Control", "no-store"); return res.status(200).json(await stockDiag(String(req.query?.q || "").slice(0, 60))); }
   const q = String(req.query?.q || "").replace(/\s+/g, " ").trim().slice(0, 300);
   const seed = Math.abs(parseInt(req.query?.s, 10) || 7) % 1000000;
   const t = String(req.query?.t || "");
@@ -177,18 +185,28 @@ module.exports = async function handler(req, res){
     if(t === "cut" && process.env.MEALDB !== "0") img = await mealdb(q, diag, !!(info && req.query?.any)).catch(e => { diag.push("mealdb " + (e?.name || "error")); return null; });
     // Sin clave, el modelo gratis no respeta "ingrediente solo sobre fondo blanco" (arma un plato): para ingredientes no se usa
     if(!img && (t !== "cut" || process.env.POLLINATIONS_API_KEY)) img = await pollinations(q, seed, deadline, style, t, diag);
+    // Ingredientes: foto real de dominio público elegida por Gemini (solo para la app, con su código de acceso)
+    if(!img && t === "cut" && process.env.GEMINI_API_KEY){
+      const code = req.headers["x-app-code"], ip = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || "local";
+      if(process.env.APP_CODE && code !== process.env.APP_CODE) diag.push("stock: falta el código de la app");
+      else if(limited(ip)) diag.push("stock: demasiadas búsquedas");
+      else img = await stock(q, String(req.query?.es || "").replace(/\s+/g, " ").trim().slice(0, 60), diag).catch(e => { diag.push("stock " + (e?.message || e)); return null; });
+    }
     if(!img && process.env.PEXELS_API_KEY && !t) img = await pexels(q, process.env.PEXELS_API_KEY);
     if(!img){
       res.setHeader("Cache-Control", "no-store");
       return info ? res.status(404).json({ error:"no_image", diag }) : res.status(404).end();
     }
-    if(info) return res.status(200).json({ src: img.src, type: img.type, bytes: img.buf.length, ...dims(img.buf), diag, ...(info === "b64" ? { b64: img.buf.toString("base64") } : {}) });
+    if(info) return res.status(200).json({ src: img.src, type: img.type, bytes: img.buf.length, ...dims(img.buf), box: img.box, liso: img.liso, credit: img.credit, diag, ...(info === "b64" ? { b64: img.buf.toString("base64") } : {}) });
     if(img.buf.length > 4.3 * 1024 * 1024 && img.url){            // Vercel no envía respuestas de más de 4.5 MB: se redirige a la imagen
       res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=31536000");
       return res.redirect(302, img.url);
     }
     res.setHeader("Content-Type", img.type);
     res.setHeader("X-Foto-Fuente", img.src);
+    if(img.box) res.setHeader("X-Foto-Box", img.box);
+    if(img.liso) res.setHeader("X-Foto-Liso", img.liso);
+    if(img.credit) res.setHeader("X-Foto-Credito", encodeURIComponent(img.credit));
     // Las fotos de Pollinations sin clave salen con logo y modelo básico: se guardan una semana, para cambiarlas cuando haya clave
     res.setHeader("Cache-Control", /pollinations:(sana|turbo|\?)/.test(img.src) ? "public, max-age=604800, s-maxage=604800" : "public, max-age=31536000, s-maxage=31536000, immutable");
     return res.status(200).send(img.buf);
